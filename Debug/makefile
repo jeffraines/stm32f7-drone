@@ -30,24 +30,24 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-stm32f722ze-ESC.elf \
+stm32f7-drone.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-stm32f722ze-ESC.list \
+stm32f7-drone.list \
 
 OBJCOPY_BIN += \
-stm32f722ze-ESC.bin \
+stm32f7-drone.bin \
 
 
 # All Target
-all: stm32f722ze-ESC.elf secondary-outputs
+all: stm32f7-drone.elf secondary-outputs
 
 # Tool invocations
-stm32f722ze-ESC.elf: $(OBJS) $(USER_OBJS) C:\Users\jeffr\STM32CubeIDE\workspace_1.4.0\stm32f722ze-ESC\STM32F722ZETX_FLASH.ld
-	arm-none-eabi-gcc -o "stm32f722ze-ESC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\jeffr\STM32CubeIDE\workspace_1.4.0\stm32f722ze-ESC\STM32F722ZETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f722ze-ESC.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+stm32f7-drone.elf: $(OBJS) $(USER_OBJS) C:\Users\jeffr\STM32CubeIDE\workspace_1.4.0\stm32f7-drone\STM32F722ZETX_FLASH.ld
+	arm-none-eabi-gcc -o "stm32f7-drone.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\jeffr\STM32CubeIDE\workspace_1.4.0\stm32f7-drone\STM32F722ZETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f7-drone.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -56,13 +56,13 @@ default.size.stdout: $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32f722ze-ESC.list: $(EXECUTABLES)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "stm32f722ze-ESC.list"
+stm32f7-drone.list: $(EXECUTABLES)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "stm32f7-drone.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32f722ze-ESC.bin: $(EXECUTABLES)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "stm32f722ze-ESC.bin"
+stm32f7-drone.bin: $(EXECUTABLES)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "stm32f7-drone.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 
