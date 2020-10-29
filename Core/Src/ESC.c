@@ -54,44 +54,32 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #include "main.h"
 #include "ESC.h"
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdma1, DMA_HandleTypeDef* hdma2, DMA_HandleTypeDef* hdma3, DMA_HandleTypeDef* hdma4)
+ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdmaArray[])
 {
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
-		ESC_CONTROLLER[i].Throttle = 1000*i;
+		ESC_CONTROLLER[i].Throttle = 0;
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Index = i;
-		switch (i)
-		{
-			case 0:
-				HAL_DMA_Start(hdma1, (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
-				break;
-			case 1:
-				HAL_DMA_Start(hdma2, (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
-				break;
-			case 2:
-				HAL_DMA_Start(hdma3, (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
-				break;
-			case 3:
-				HAL_DMA_Start(hdma4, (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
-				break;
-		}
+		ESC_CONTROLLER[i].Timer = timer;
+		ESC_CONTROLLER[i].Dma = hdmaArray[i];
+		HAL_DMA_Start(hdmaArray[i], (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
 		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
 	}
 	return ESC_CONTROLLER;
 }
 
-void ESC_UPDATE_THROTTLE(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdma, ESC_CONTROLLER* ESC)
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC)
 {
 	// May want to handle error checking for DMA_FLAG_(TEIFx, DMEIFx, FEIFx) flags
-	__HAL_DMA_CLEAR_FLAG(hdma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
+	__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
 						 	   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
 							   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
 							   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-	__HAL_DMA_SET_COUNTER(hdma, sizeof(ESC[ESC->Channel].Throttle));
-	__HAL_DMA_ENABLE(hdma);
-	HAL_TIM_PWM_Start(timer, ESC->Channel);
+	__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC[ESC->Index].Throttle));
+	__HAL_DMA_ENABLE(ESC->Dma);
+	HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
  }
 
 
