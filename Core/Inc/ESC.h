@@ -12,19 +12,23 @@ typedef struct ESC
 {
 	uint32_t Throttle;
 	uint32_t Channel;
-	uint32_t Index;
+	uint32_t Number;
 	TIM_HandleTypeDef* Timer;
 	DMA_HandleTypeDef* Dma;
 } ESC_CONTROLLER;
 
 
-/* Function Summary: Initiate the Electronic Speed Controller (esc) for a particular timer and channel.
- * Parameter: *timer - Pointer to predefined timer, channel - Channel number for the timer
-// Recommended parameter inputs: *timer = &htim1, &htim2, &htim3, &htim4; channel = 1, ... , 6
- *
+/* Function Summary: Initiate the Electronic Speed Controller (ESC) for a particular timer and DMA streams.
+ * Parameters: *timer - Pointer to predefined timer, *hdmaArray - Array containing set of DMA streams
+ * Return: Pointer to the beginning of an array populated with ESC structs.
  */
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef * hdmaArray[]);
+ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdmaArray[]);
+
+/* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
+ * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
+ */
+
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC);
 
 #endif /* INC_ESC_H_ */

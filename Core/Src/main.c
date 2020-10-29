@@ -19,11 +19,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ESC.h"
-#include <string.h>
+#include "ADC.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +56,10 @@ DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream2;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
 /* USER CODE BEGIN PV */
-uint16_t pwm = 0;
-uint8_t adc[12];
-uint16_t potValue;
+uint32_t throttle1;
+DMA_HandleTypeDef* hdmaArray[] = {&hdma_memtomem_dma2_stream0, &hdma_memtomem_dma2_stream1,
+		  	  	  	  	  	  	  	&hdma_memtomem_dma2_stream2, &hdma_memtomem_dma2_stream3};
+ESC_CONTROLLER* myESCSet;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,17 +113,14 @@ int main(void)
   MX_TIM4_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &potValue, sizeof(potValue));
-  DMA_HandleTypeDef* hdmaArray[] = {&hdma_memtomem_dma2_stream0, &hdma_memtomem_dma2_stream1,
-		  	  	  	  	  	  	  	&hdma_memtomem_dma2_stream2, &hdma_memtomem_dma2_stream3};
-  ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, hdmaArray);
+  ADC_INIT(&hadc1, &throttle1);
+  myESCSet = ESC_INIT_CONTROLLER(&htim4, hdmaArray);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      HAL_ADC_Start(&hadc1);
       for (int i = 0; i < ESC_COUNT; i++)
       {
     	  if (myESCSet[i].Throttle < 10000) myESCSet[i].Throttle += 10 + (20 * i);

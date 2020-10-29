@@ -61,7 +61,7 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 	{
 		ESC_CONTROLLER[i].Throttle = 0;
 		ESC_CONTROLLER[i].Channel = 4*i;
-		ESC_CONTROLLER[i].Index = i;
+		ESC_CONTROLLER[i].Number = i;
 		ESC_CONTROLLER[i].Timer = timer;
 		ESC_CONTROLLER[i].Dma = hdmaArray[i];
 		HAL_DMA_Start(hdmaArray[i], (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
@@ -77,7 +77,7 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC)
 						 	   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
 							   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
 							   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-	__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC[ESC->Index].Throttle));
+	__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC[ESC->Number].Throttle));
 	__HAL_DMA_ENABLE(ESC->Dma);
 	HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
  }
