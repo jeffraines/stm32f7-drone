@@ -29,6 +29,6 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
 
 #endif /* INC_ESC_H_ */

@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <string.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ESC.h"
@@ -56,7 +56,8 @@ DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream2;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
 /* USER CODE BEGIN PV */
-uint32_t throttle1;
+uint32_t throttlePot;
+uint32_t throttle = 1365;
 DMA_HandleTypeDef* hdmaArray[] = {&hdma_memtomem_dma2_stream0, &hdma_memtomem_dma2_stream1,
 		  	  	  	  	  	  	  	&hdma_memtomem_dma2_stream2, &hdma_memtomem_dma2_stream3};
 ESC_CONTROLLER* myESCSet;
@@ -113,7 +114,7 @@ int main(void)
   MX_TIM4_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  ADC_INIT(&hadc1, &throttle1);
+  ADC_INIT(&hadc1, &throttlePot);
   myESCSet = ESC_INIT_CONTROLLER(&htim4, hdmaArray);
   /* USER CODE END 2 */
 
@@ -121,13 +122,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      for (int i = 0; i < ESC_COUNT; i++)
-      {
-    	  if (myESCSet[i].Throttle < 10000) myESCSet[i].Throttle += 10 + (20 * i);
-    	  else myESCSet[i].Throttle = 0;
-    	  ESC_UPDATE_THROTTLE(&myESCSet[i]);
-      }
-      HAL_Delay(10);
+    ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
+    HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -264,9 +260,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 9;
+  htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 10799;
+  htim4.Init.Period = 719;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
