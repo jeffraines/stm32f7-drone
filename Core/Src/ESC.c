@@ -136,7 +136,6 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 			__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
 			__HAL_DMA_ENABLE(ESC->Dma);
 			HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-			HAL_Delay(1);
 		}
 	for (int telemetryBit = 0; telemetryBit < 1; telemetryBit++)
 		{
@@ -148,7 +147,6 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 			__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
 			__HAL_DMA_ENABLE(ESC->Dma);
 			HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-			HAL_Delay(1);
 		}
 	for (int throttleBits = 0; throttleBits < 11; throttleBits++)
 	{
@@ -161,18 +159,7 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 		__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
 		__HAL_DMA_ENABLE(ESC->Dma);
 		HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-		HAL_Delay(1);
 	}
-	// Send 0 for last pwm signal
-	ESC->Throttle = 0;
-	__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
-								   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
-								   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
-								   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-	__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
-	__HAL_DMA_ENABLE(ESC->Dma);
-	HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-	HAL_Delay(1);
 }
 
 void DSHOT_CMD_SEND(void)

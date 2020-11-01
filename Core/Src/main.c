@@ -122,8 +122,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
-    HAL_Delay(1000);
+	  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
+	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -266,6 +266,10 @@ static void MX_TIM4_Init(void)
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OnePulse_Init(&htim4, TIM_OPMODE_SINGLE) != HAL_OK)
   {
     Error_Handler();
   }
