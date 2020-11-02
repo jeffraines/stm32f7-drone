@@ -102,9 +102,9 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
 
-#define __DSHOT_SEND_BIT(__ESC__, __BIT__) ((__ESC__)->Throttle = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
+#define __DSHOT_MAKE_BYTE(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdmaArray[])
+ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
 {
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
@@ -113,8 +113,9 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
 		ESC_CONTROLLER[i].Timer = timer;
-		ESC_CONTROLLER[i].Dma = hdmaArray[i];
-		HAL_DMA_Start(hdmaArray[i], (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
+		ESC_CONTROLLER[i].DMA = dma;
+		ESC_CONTROLLER[i].CCR = (uint32_t) &(timer->Instance->CCR1) + (4*i);
+		*((uint32_t *) ESC_CONTROLLER[i].CCR) = 300;
 		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
 	}
 	return ESC_CONTROLLER;
@@ -122,44 +123,35 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 {
-	if (throttle > 2048) throttle = 2047;											// Throttle cannot exceed 11 bits, so max value is 2047
-	uint8_t telemtry =0b0;															// Updating only throttle value, so telemtry is 0
-	uint8_t checksum = 0b0000;														// Updating only throttle value, so checksum is 0
-	for (int checksumBits = 0; checksumBits < 4; checksumBits++)
-		{
-			__DSHOT_SEND_BIT(ESC, checksum);
-			checksum = checksum >> 1;
-			__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
-										   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
-										   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
-										   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-			__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
-			__HAL_DMA_ENABLE(ESC->Dma);
-			HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-		}
-	for (int telemetryBit = 0; telemetryBit < 1; telemetryBit++)
-		{
-			__DSHOT_SEND_BIT(ESC, telemtry);
-			__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
-										   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
-										   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
-										   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-			__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
-			__HAL_DMA_ENABLE(ESC->Dma);
-			HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
-		}
-	for (int throttleBits = 0; throttleBits < 11; throttleBits++)
+	// Throttle cannot exceed 11 bits, so max value is 2047
+	if (throttle > 2048) throttle = 2047;
+	// Updating only throttle value, so telemtry is 0
+	uint8_t telemetry =0b0;
+	// Updating only throttle value, so checksum is 0
+	uint8_t checksum = 0b0000;
+	// 17th bit is to set CCR to 0 to keep it low between packets
+	uint32_t dshotPacket[17] = {0};
+	dshotPacket[16] = 1337;
+	// Populate checksum bits
+	for (int checksumBits = 0; checksumBits <= 3; checksumBits++)
 	{
- 		__DSHOT_SEND_BIT(ESC, throttle);
-		throttle = throttle >> 1;
-		__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
-									   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
-									   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
-									   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-		__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
-		__HAL_DMA_ENABLE(ESC->Dma);
-		HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
+		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
+		checksum = checksum >> 1;
 	}
+	// Populate telemetry bit
+	__DSHOT_MAKE_BYTE(dshotPacket[4], telemetry);
+	// Populate throttle bits
+	for (int throttleBits = 5; throttleBits <= 15; throttleBits++)
+	{
+		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
+		throttle = throttle >> 1;
+	}
+	// Setup the DMA stream to send the dshotPacket bytes to the CCR
+	// Clear transfer and half transfer complete flags
+	ESC->DMA->Lock = HAL_UNLOCKED;
+	ESC->DMA->State = HAL_DMA_STATE_READY;
+	// __HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4));
+	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, sizeof(dshotPacket));
 }
 
 void DSHOT_CMD_SEND(void)
@@ -180,7 +172,7 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
 		ESC_CONTROLLER[i].Timer = timer;
-		ESC_CONTROLLER[i].Dma = hdmaArray[i];
+		ESC_CONTROLLER[i].DMA = hdmaArray[i];
 		HAL_DMA_Start(hdmaArray[i], (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
 		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
 	}
@@ -190,12 +182,12 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC)
 {
 	// May want to handle error checking for DMA_FLAG_(TEIFx, DMEIFx, FEIFx) flags
-	__HAL_DMA_CLEAR_FLAG(ESC->Dma, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
+	__HAL_DMA_CLEAR_FLAG(ESC->DMA, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
 						 	   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
 							   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
 							   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-	__HAL_DMA_SET_COUNTER(ESC->Dma, sizeof(ESC->Throttle));
-	__HAL_DMA_ENABLE(ESC->Dma);
+	__HAL_DMA_SET_COUNTER(ESC->DMA, sizeof(ESC->Throttle));
+	__HAL_DMA_ENABLE(ESC->DMA);
 	HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
  }
 #endif

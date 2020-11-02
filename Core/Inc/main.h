@@ -72,14 +72,6 @@ void Error_Handler(void);
 #define STLK_RX_GPIO_Port GPIOD
 #define STLK_TX_Pin GPIO_PIN_9
 #define STLK_TX_GPIO_Port GPIOD
-#define Timer4_CH1_ESC1_Pin GPIO_PIN_12
-#define Timer4_CH1_ESC1_GPIO_Port GPIOD
-#define Timer4_CH2_ESC2_Pin GPIO_PIN_13
-#define Timer4_CH2_ESC2_GPIO_Port GPIOD
-#define Timer4_CH3_ESC3_Pin GPIO_PIN_14
-#define Timer4_CH3_ESC3_GPIO_Port GPIOD
-#define Timer4_CH4_ESC4_Pin GPIO_PIN_15
-#define Timer4_CH4_ESC4_GPIO_Port GPIOD
 #define USB_PowerSwitchOn_Pin GPIO_PIN_6
 #define USB_PowerSwitchOn_GPIO_Port GPIOG
 #define USB_OverCurrent_Pin GPIO_PIN_7

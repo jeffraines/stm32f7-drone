@@ -58,9 +58,6 @@
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
-extern DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
-extern DMA_HandleTypeDef hdma_memtomem_dma2_stream2;
-extern DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
