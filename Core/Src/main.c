@@ -116,7 +116,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
+	  ESC_UPDATE_THROTTLE(myESCSet, throttle);
 	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
@@ -258,7 +258,7 @@ static void MX_TIM4_Init(void)
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 719;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
@@ -281,16 +281,26 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_2);
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
+  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_3);
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
+  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_4);
   /* USER CODE BEGIN TIM4_Init 2 */
-
+  htim4.Instance->CR2 = TIM_CR2_CCDS;
+  // Set DMA Transfers to 17 with DBL and destination to CCR1 (15) with DBA
+  htim4.Instance->DCR =  TIM_DCR_DBA_0 | TIM_DCR_DBA_2 | TIM_DCR_DBA_3; //CCR1
+  //htim4.Instance->DCR =  TIM_DCR_DBA_4; //CCR4
+  // Enable Update DMA Request
+  htim4.Instance->DIER = TIM_DIER_UDE;
+  // Enable DMA requests on CH1
+  htim4.Instance->DIER = TIM_DIER_CC1DE;
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
 
