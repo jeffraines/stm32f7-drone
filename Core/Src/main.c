@@ -117,11 +117,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  while (init < 100)
+	  while (init < 1000)
 	  {
 		  init++;
 		  ESC_UPDATE_THROTTLE(&myESCSet[1], 0);
-		  HAL_Delay(1);
+		  HAL_Delay(10);
 	  }
 	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
 	  throttle++;
@@ -129,7 +129,7 @@ int main(void)
 	  {
 		  throttle = 0;
 	  }
-	  HAL_Delay(10);
+	  HAL_Delay(30);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -268,7 +268,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 719;
+  htim4.Init.Period = 359;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_OC_Init(&htim4) != HAL_OK)

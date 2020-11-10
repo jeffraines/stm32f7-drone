@@ -4547,10 +4547,10 @@ LOAD c:/st/stm32cubeide_1.4.0/stm32cubeide/plugins/com.st.stm32cube.ide.mcu.exte
                 0x0000000008000542                ESC_INIT_CONTROLLER
  *fill*         0x000000000800062e        0x2 
  .text.ESC_UPDATE_THROTTLE
-                0x0000000008000630      0x174 Core/Src/ESC.o
+                0x0000000008000630      0x170 Core/Src/ESC.o
                 0x0000000008000630                ESC_UPDATE_THROTTLE
- .text.main     0x00000000080007a4       0xa4 Core/Src/main.o
-                0x00000000080007a4                main
+ .text.main     0x00000000080007a0       0xa8 Core/Src/main.o
+                0x00000000080007a0                main
  .text.SystemClock_Config
                 0x0000000008000848      0x12c Core/Src/main.o
                 0x0000000008000848                SystemClock_Config

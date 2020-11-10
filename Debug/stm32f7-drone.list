@@ -536,12 +536,12 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
  8000642:	f240 73ff 	movw	r3, #2047	; 0x7ff
  8000646:	603b      	str	r3, [r7, #0]
 	// Updating only throttle value, so telemetry is 0
-	uint8_t telemetry =0b0;
- 8000648:	2300      	movs	r3, #0
+	uint8_t telemetry =0b1;
+ 8000648:	2301      	movs	r3, #1
  800064a:	f887 3053 	strb.w	r3, [r7, #83]	; 0x53
 	// Updating only throttle value, so checksum is 0
-	uint8_t checksum = 0b0000;
- 800064e:	2300      	movs	r3, #0
+	uint8_t checksum = 0b1111;
+ 800064e:	230f      	movs	r3, #15
  8000650:	f887 305f 	strb.w	r3, [r7, #95]	; 0x5f
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
@@ -553,279 +553,281 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 	dshotPacket[16] = 0;
  8000662:	2300      	movs	r3, #0
  8000664:	64fb      	str	r3, [r7, #76]	; 0x4c
-	// Populate checksum bits
-	for (int checksumBits = 0; checksumBits <= 3; checksumBits++)
- 8000666:	2300      	movs	r3, #0
- 8000668:	65bb      	str	r3, [r7, #88]	; 0x58
- 800066a:	e019      	b.n	80006a0 <ESC_UPDATE_THROTTLE+0x70>
-	{
-		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
- 800066c:	f897 305f 	ldrb.w	r3, [r7, #95]	; 0x5f
- 8000670:	f003 0301 	and.w	r3, r3, #1
- 8000674:	2b00      	cmp	r3, #0
- 8000676:	d002      	beq.n	800067e <ESC_UPDATE_THROTTLE+0x4e>
- 8000678:	f44f 7207 	mov.w	r2, #540	; 0x21c
- 800067c:	e001      	b.n	8000682 <ESC_UPDATE_THROTTLE+0x52>
- 800067e:	f44f 7287 	mov.w	r2, #270	; 0x10e
- 8000682:	6dbb      	ldr	r3, [r7, #88]	; 0x58
- 8000684:	009b      	lsls	r3, r3, #2
- 8000686:	f107 0160 	add.w	r1, r7, #96	; 0x60
- 800068a:	440b      	add	r3, r1
- 800068c:	f843 2c54 	str.w	r2, [r3, #-84]
-		checksum = checksum >> 1;
- 8000690:	f897 305f 	ldrb.w	r3, [r7, #95]	; 0x5f
- 8000694:	085b      	lsrs	r3, r3, #1
- 8000696:	f887 305f 	strb.w	r3, [r7, #95]	; 0x5f
-	for (int checksumBits = 0; checksumBits <= 3; checksumBits++)
- 800069a:	6dbb      	ldr	r3, [r7, #88]	; 0x58
- 800069c:	3301      	adds	r3, #1
- 800069e:	65bb      	str	r3, [r7, #88]	; 0x58
- 80006a0:	6dbb      	ldr	r3, [r7, #88]	; 0x58
- 80006a2:	2b03      	cmp	r3, #3
- 80006a4:	dde2      	ble.n	800066c <ESC_UPDATE_THROTTLE+0x3c>
-	}
-	// Populate telemetry bit
-	__DSHOT_MAKE_BYTE(dshotPacket[4], telemetry);
- 80006a6:	f897 3053 	ldrb.w	r3, [r7, #83]	; 0x53
- 80006aa:	f003 0301 	and.w	r3, r3, #1
- 80006ae:	2b00      	cmp	r3, #0
- 80006b0:	d002      	beq.n	80006b8 <ESC_UPDATE_THROTTLE+0x88>
- 80006b2:	f44f 7307 	mov.w	r3, #540	; 0x21c
- 80006b6:	e001      	b.n	80006bc <ESC_UPDATE_THROTTLE+0x8c>
- 80006b8:	f44f 7387 	mov.w	r3, #270	; 0x10e
- 80006bc:	61fb      	str	r3, [r7, #28]
 	// Populate throttle bits
-	for (int throttleBits = 5; throttleBits <= 15; throttleBits++)
- 80006be:	2305      	movs	r3, #5
- 80006c0:	657b      	str	r3, [r7, #84]	; 0x54
- 80006c2:	e016      	b.n	80006f2 <ESC_UPDATE_THROTTLE+0xc2>
+	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)
+ 8000666:	230a      	movs	r3, #10
+ 8000668:	65bb      	str	r3, [r7, #88]	; 0x58
+ 800066a:	e015      	b.n	8000698 <ESC_UPDATE_THROTTLE+0x68>
 	{
 		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
- 80006c4:	683b      	ldr	r3, [r7, #0]
- 80006c6:	f003 0301 	and.w	r3, r3, #1
- 80006ca:	2b00      	cmp	r3, #0
- 80006cc:	d002      	beq.n	80006d4 <ESC_UPDATE_THROTTLE+0xa4>
- 80006ce:	f44f 7207 	mov.w	r2, #540	; 0x21c
- 80006d2:	e001      	b.n	80006d8 <ESC_UPDATE_THROTTLE+0xa8>
- 80006d4:	f44f 7287 	mov.w	r2, #270	; 0x10e
- 80006d8:	6d7b      	ldr	r3, [r7, #84]	; 0x54
- 80006da:	009b      	lsls	r3, r3, #2
- 80006dc:	f107 0160 	add.w	r1, r7, #96	; 0x60
- 80006e0:	440b      	add	r3, r1
- 80006e2:	f843 2c54 	str.w	r2, [r3, #-84]
+ 800066c:	683b      	ldr	r3, [r7, #0]
+ 800066e:	f003 0301 	and.w	r3, r3, #1
+ 8000672:	2b00      	cmp	r3, #0
+ 8000674:	d002      	beq.n	800067c <ESC_UPDATE_THROTTLE+0x4c>
+ 8000676:	f44f 7287 	mov.w	r2, #270	; 0x10e
+ 800067a:	e000      	b.n	800067e <ESC_UPDATE_THROTTLE+0x4e>
+ 800067c:	2287      	movs	r2, #135	; 0x87
+ 800067e:	6dbb      	ldr	r3, [r7, #88]	; 0x58
+ 8000680:	009b      	lsls	r3, r3, #2
+ 8000682:	f107 0160 	add.w	r1, r7, #96	; 0x60
+ 8000686:	440b      	add	r3, r1
+ 8000688:	f843 2c54 	str.w	r2, [r3, #-84]
 		throttle = throttle >> 1;
- 80006e6:	683b      	ldr	r3, [r7, #0]
- 80006e8:	085b      	lsrs	r3, r3, #1
- 80006ea:	603b      	str	r3, [r7, #0]
-	for (int throttleBits = 5; throttleBits <= 15; throttleBits++)
+ 800068c:	683b      	ldr	r3, [r7, #0]
+ 800068e:	085b      	lsrs	r3, r3, #1
+ 8000690:	603b      	str	r3, [r7, #0]
+	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)
+ 8000692:	6dbb      	ldr	r3, [r7, #88]	; 0x58
+ 8000694:	3b01      	subs	r3, #1
+ 8000696:	65bb      	str	r3, [r7, #88]	; 0x58
+ 8000698:	6dbb      	ldr	r3, [r7, #88]	; 0x58
+ 800069a:	2b00      	cmp	r3, #0
+ 800069c:	dae6      	bge.n	800066c <ESC_UPDATE_THROTTLE+0x3c>
+	}
+	// Populate telemetry bit
+	__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
+ 800069e:	f897 3053 	ldrb.w	r3, [r7, #83]	; 0x53
+ 80006a2:	f003 0301 	and.w	r3, r3, #1
+ 80006a6:	2b00      	cmp	r3, #0
+ 80006a8:	d002      	beq.n	80006b0 <ESC_UPDATE_THROTTLE+0x80>
+ 80006aa:	f44f 7387 	mov.w	r3, #270	; 0x10e
+ 80006ae:	e000      	b.n	80006b2 <ESC_UPDATE_THROTTLE+0x82>
+ 80006b0:	2387      	movs	r3, #135	; 0x87
+ 80006b2:	63bb      	str	r3, [r7, #56]	; 0x38
+	// Populate checksum bits
+	for (int checksumBits = 12; checksumBits <= 15; checksumBits++)
+ 80006b4:	230c      	movs	r3, #12
+ 80006b6:	657b      	str	r3, [r7, #84]	; 0x54
+ 80006b8:	e018      	b.n	80006ec <ESC_UPDATE_THROTTLE+0xbc>
+	{
+		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
+ 80006ba:	f897 305f 	ldrb.w	r3, [r7, #95]	; 0x5f
+ 80006be:	f003 0301 	and.w	r3, r3, #1
+ 80006c2:	2b00      	cmp	r3, #0
+ 80006c4:	d002      	beq.n	80006cc <ESC_UPDATE_THROTTLE+0x9c>
+ 80006c6:	f44f 7287 	mov.w	r2, #270	; 0x10e
+ 80006ca:	e000      	b.n	80006ce <ESC_UPDATE_THROTTLE+0x9e>
+ 80006cc:	2287      	movs	r2, #135	; 0x87
+ 80006ce:	6d7b      	ldr	r3, [r7, #84]	; 0x54
+ 80006d0:	009b      	lsls	r3, r3, #2
+ 80006d2:	f107 0160 	add.w	r1, r7, #96	; 0x60
+ 80006d6:	440b      	add	r3, r1
+ 80006d8:	f843 2c54 	str.w	r2, [r3, #-84]
+		checksum = checksum >> 1;
+ 80006dc:	f897 305f 	ldrb.w	r3, [r7, #95]	; 0x5f
+ 80006e0:	085b      	lsrs	r3, r3, #1
+ 80006e2:	f887 305f 	strb.w	r3, [r7, #95]	; 0x5f
+	for (int checksumBits = 12; checksumBits <= 15; checksumBits++)
+ 80006e6:	6d7b      	ldr	r3, [r7, #84]	; 0x54
+ 80006e8:	3301      	adds	r3, #1
+ 80006ea:	657b      	str	r3, [r7, #84]	; 0x54
  80006ec:	6d7b      	ldr	r3, [r7, #84]	; 0x54
- 80006ee:	3301      	adds	r3, #1
- 80006f0:	657b      	str	r3, [r7, #84]	; 0x54
- 80006f2:	6d7b      	ldr	r3, [r7, #84]	; 0x54
- 80006f4:	2b0f      	cmp	r3, #15
- 80006f6:	dde5      	ble.n	80006c4 <ESC_UPDATE_THROTTLE+0x94>
+ 80006ee:	2b0f      	cmp	r3, #15
+ 80006f0:	dde3      	ble.n	80006ba <ESC_UPDATE_THROTTLE+0x8a>
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
 //	ESC->DMA->Lock = HAL_UNLOCKED;
 //	ESC->DMA->State = HAL_DMA_STATE_READY;
 	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
- 80006f8:	687b      	ldr	r3, [r7, #4]
- 80006fa:	691b      	ldr	r3, [r3, #16]
- 80006fc:	681b      	ldr	r3, [r3, #0]
- 80006fe:	461a      	mov	r2, r3
+ 80006f2:	687b      	ldr	r3, [r7, #4]
+ 80006f4:	691b      	ldr	r3, [r3, #16]
+ 80006f6:	681b      	ldr	r3, [r3, #0]
+ 80006f8:	461a      	mov	r2, r3
+ 80006fa:	4b24      	ldr	r3, [pc, #144]	; (800078c <ESC_UPDATE_THROTTLE+0x15c>)
+ 80006fc:	429a      	cmp	r2, r3
+ 80006fe:	d903      	bls.n	8000708 <ESC_UPDATE_THROTTLE+0xd8>
  8000700:	4b23      	ldr	r3, [pc, #140]	; (8000790 <ESC_UPDATE_THROTTLE+0x160>)
- 8000702:	429a      	cmp	r2, r3
- 8000704:	d903      	bls.n	800070e <ESC_UPDATE_THROTTLE+0xde>
- 8000706:	4b23      	ldr	r3, [pc, #140]	; (8000794 <ESC_UPDATE_THROTTLE+0x164>)
- 8000708:	2231      	movs	r2, #49	; 0x31
- 800070a:	60da      	str	r2, [r3, #12]
- 800070c:	e018      	b.n	8000740 <ESC_UPDATE_THROTTLE+0x110>
- 800070e:	687b      	ldr	r3, [r7, #4]
- 8000710:	691b      	ldr	r3, [r3, #16]
- 8000712:	681b      	ldr	r3, [r3, #0]
- 8000714:	461a      	mov	r2, r3
- 8000716:	4b20      	ldr	r3, [pc, #128]	; (8000798 <ESC_UPDATE_THROTTLE+0x168>)
- 8000718:	429a      	cmp	r2, r3
- 800071a:	d903      	bls.n	8000724 <ESC_UPDATE_THROTTLE+0xf4>
- 800071c:	4b1d      	ldr	r3, [pc, #116]	; (8000794 <ESC_UPDATE_THROTTLE+0x164>)
- 800071e:	2231      	movs	r2, #49	; 0x31
- 8000720:	609a      	str	r2, [r3, #8]
- 8000722:	e00d      	b.n	8000740 <ESC_UPDATE_THROTTLE+0x110>
- 8000724:	687b      	ldr	r3, [r7, #4]
- 8000726:	691b      	ldr	r3, [r3, #16]
- 8000728:	681b      	ldr	r3, [r3, #0]
- 800072a:	461a      	mov	r2, r3
+ 8000702:	2231      	movs	r2, #49	; 0x31
+ 8000704:	60da      	str	r2, [r3, #12]
+ 8000706:	e018      	b.n	800073a <ESC_UPDATE_THROTTLE+0x10a>
+ 8000708:	687b      	ldr	r3, [r7, #4]
+ 800070a:	691b      	ldr	r3, [r3, #16]
+ 800070c:	681b      	ldr	r3, [r3, #0]
+ 800070e:	461a      	mov	r2, r3
+ 8000710:	4b20      	ldr	r3, [pc, #128]	; (8000794 <ESC_UPDATE_THROTTLE+0x164>)
+ 8000712:	429a      	cmp	r2, r3
+ 8000714:	d903      	bls.n	800071e <ESC_UPDATE_THROTTLE+0xee>
+ 8000716:	4b1e      	ldr	r3, [pc, #120]	; (8000790 <ESC_UPDATE_THROTTLE+0x160>)
+ 8000718:	2231      	movs	r2, #49	; 0x31
+ 800071a:	609a      	str	r2, [r3, #8]
+ 800071c:	e00d      	b.n	800073a <ESC_UPDATE_THROTTLE+0x10a>
+ 800071e:	687b      	ldr	r3, [r7, #4]
+ 8000720:	691b      	ldr	r3, [r3, #16]
+ 8000722:	681b      	ldr	r3, [r3, #0]
+ 8000724:	461a      	mov	r2, r3
+ 8000726:	4b1c      	ldr	r3, [pc, #112]	; (8000798 <ESC_UPDATE_THROTTLE+0x168>)
+ 8000728:	429a      	cmp	r2, r3
+ 800072a:	d903      	bls.n	8000734 <ESC_UPDATE_THROTTLE+0x104>
  800072c:	4b1b      	ldr	r3, [pc, #108]	; (800079c <ESC_UPDATE_THROTTLE+0x16c>)
- 800072e:	429a      	cmp	r2, r3
- 8000730:	d903      	bls.n	800073a <ESC_UPDATE_THROTTLE+0x10a>
- 8000732:	4b1b      	ldr	r3, [pc, #108]	; (80007a0 <ESC_UPDATE_THROTTLE+0x170>)
- 8000734:	2231      	movs	r2, #49	; 0x31
- 8000736:	60da      	str	r2, [r3, #12]
- 8000738:	e002      	b.n	8000740 <ESC_UPDATE_THROTTLE+0x110>
- 800073a:	4b19      	ldr	r3, [pc, #100]	; (80007a0 <ESC_UPDATE_THROTTLE+0x170>)
- 800073c:	2231      	movs	r2, #49	; 0x31
- 800073e:	609a      	str	r2, [r3, #8]
+ 800072e:	2231      	movs	r2, #49	; 0x31
+ 8000730:	60da      	str	r2, [r3, #12]
+ 8000732:	e002      	b.n	800073a <ESC_UPDATE_THROTTLE+0x10a>
+ 8000734:	4b19      	ldr	r3, [pc, #100]	; (800079c <ESC_UPDATE_THROTTLE+0x16c>)
+ 8000736:	2231      	movs	r2, #49	; 0x31
+ 8000738:	609a      	str	r2, [r3, #8]
 	ESC->DMA->Instance->NDTR = 17;
- 8000740:	687b      	ldr	r3, [r7, #4]
- 8000742:	691b      	ldr	r3, [r3, #16]
- 8000744:	681b      	ldr	r3, [r3, #0]
- 8000746:	2211      	movs	r2, #17
- 8000748:	605a      	str	r2, [r3, #4]
+ 800073a:	687b      	ldr	r3, [r7, #4]
+ 800073c:	691b      	ldr	r3, [r3, #16]
+ 800073e:	681b      	ldr	r3, [r3, #0]
+ 8000740:	2211      	movs	r2, #17
+ 8000742:	605a      	str	r2, [r3, #4]
 	ESC->DMA->Instance->M0AR = (uint32_t) &dshotPacket;
- 800074a:	687b      	ldr	r3, [r7, #4]
- 800074c:	691b      	ldr	r3, [r3, #16]
- 800074e:	681b      	ldr	r3, [r3, #0]
- 8000750:	f107 020c 	add.w	r2, r7, #12
- 8000754:	60da      	str	r2, [r3, #12]
+ 8000744:	687b      	ldr	r3, [r7, #4]
+ 8000746:	691b      	ldr	r3, [r3, #16]
+ 8000748:	681b      	ldr	r3, [r3, #0]
+ 800074a:	f107 020c 	add.w	r2, r7, #12
+ 800074e:	60da      	str	r2, [r3, #12]
 	ESC->DMA->Instance->PAR = ESC->CCR;
- 8000756:	687b      	ldr	r3, [r7, #4]
- 8000758:	691b      	ldr	r3, [r3, #16]
- 800075a:	681b      	ldr	r3, [r3, #0]
- 800075c:	687a      	ldr	r2, [r7, #4]
- 800075e:	6952      	ldr	r2, [r2, #20]
- 8000760:	609a      	str	r2, [r3, #8]
+ 8000750:	687b      	ldr	r3, [r7, #4]
+ 8000752:	691b      	ldr	r3, [r3, #16]
+ 8000754:	681b      	ldr	r3, [r3, #0]
+ 8000756:	687a      	ldr	r2, [r7, #4]
+ 8000758:	6952      	ldr	r2, [r2, #20]
+ 800075a:	609a      	str	r2, [r3, #8]
 	__HAL_DMA_ENABLE(ESC->DMA);
- 8000762:	687b      	ldr	r3, [r7, #4]
- 8000764:	691b      	ldr	r3, [r3, #16]
- 8000766:	681b      	ldr	r3, [r3, #0]
- 8000768:	681a      	ldr	r2, [r3, #0]
- 800076a:	687b      	ldr	r3, [r7, #4]
- 800076c:	691b      	ldr	r3, [r3, #16]
- 800076e:	681b      	ldr	r3, [r3, #0]
- 8000770:	f042 0201 	orr.w	r2, r2, #1
- 8000774:	601a      	str	r2, [r3, #0]
+ 800075c:	687b      	ldr	r3, [r7, #4]
+ 800075e:	691b      	ldr	r3, [r3, #16]
+ 8000760:	681b      	ldr	r3, [r3, #0]
+ 8000762:	681a      	ldr	r2, [r3, #0]
+ 8000764:	687b      	ldr	r3, [r7, #4]
+ 8000766:	691b      	ldr	r3, [r3, #16]
+ 8000768:	681b      	ldr	r3, [r3, #0]
+ 800076a:	f042 0201 	orr.w	r2, r2, #1
+ 800076e:	601a      	str	r2, [r3, #0]
 	while(ESC->DMA->Instance->CR & 0x1);
- 8000776:	bf00      	nop
- 8000778:	687b      	ldr	r3, [r7, #4]
- 800077a:	691b      	ldr	r3, [r3, #16]
- 800077c:	681b      	ldr	r3, [r3, #0]
- 800077e:	681b      	ldr	r3, [r3, #0]
- 8000780:	f003 0301 	and.w	r3, r3, #1
- 8000784:	2b00      	cmp	r3, #0
- 8000786:	d1f7      	bne.n	8000778 <ESC_UPDATE_THROTTLE+0x148>
+ 8000770:	bf00      	nop
+ 8000772:	687b      	ldr	r3, [r7, #4]
+ 8000774:	691b      	ldr	r3, [r3, #16]
+ 8000776:	681b      	ldr	r3, [r3, #0]
+ 8000778:	681b      	ldr	r3, [r3, #0]
+ 800077a:	f003 0301 	and.w	r3, r3, #1
+ 800077e:	2b00      	cmp	r3, #0
+ 8000780:	d1f7      	bne.n	8000772 <ESC_UPDATE_THROTTLE+0x142>
 //	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, 17);
 }
- 8000788:	bf00      	nop
- 800078a:	3760      	adds	r7, #96	; 0x60
- 800078c:	46bd      	mov	sp, r7
- 800078e:	bd80      	pop	{r7, pc}
- 8000790:	40026458 	.word	0x40026458
- 8000794:	40026400 	.word	0x40026400
- 8000798:	400260b8 	.word	0x400260b8
- 800079c:	40026058 	.word	0x40026058
- 80007a0:	40026000 	.word	0x40026000
+ 8000782:	bf00      	nop
+ 8000784:	3760      	adds	r7, #96	; 0x60
+ 8000786:	46bd      	mov	sp, r7
+ 8000788:	bd80      	pop	{r7, pc}
+ 800078a:	bf00      	nop
+ 800078c:	40026458 	.word	0x40026458
+ 8000790:	40026400 	.word	0x40026400
+ 8000794:	400260b8 	.word	0x400260b8
+ 8000798:	40026058 	.word	0x40026058
+ 800079c:	40026000 	.word	0x40026000
 
-080007a4 <main>:
+080007a0 <main>:
 /**
   * @brief  The application entry point.
   * @retval int
   */
 int main(void)
 {
- 80007a4:	b580      	push	{r7, lr}
- 80007a6:	b082      	sub	sp, #8
- 80007a8:	af00      	add	r7, sp, #0
+ 80007a0:	b580      	push	{r7, lr}
+ 80007a2:	b082      	sub	sp, #8
+ 80007a4:	af00      	add	r7, sp, #0
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
- 80007aa:	f000 fd8e 	bl	80012ca <HAL_Init>
+ 80007a6:	f000 fd90 	bl	80012ca <HAL_Init>
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
- 80007ae:	f000 f84b 	bl	8000848 <SystemClock_Config>
+ 80007aa:	f000 f84d 	bl	8000848 <SystemClock_Config>
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
- 80007b2:	f000 fa51 	bl	8000c58 <MX_GPIO_Init>
+ 80007ae:	f000 fa53 	bl	8000c58 <MX_GPIO_Init>
   MX_DMA_Init();
- 80007b6:	f000 fa1d 	bl	8000bf4 <MX_DMA_Init>
+ 80007b2:	f000 fa1f 	bl	8000bf4 <MX_DMA_Init>
   MX_USART3_UART_Init();
- 80007ba:	f000 f9bd 	bl	8000b38 <MX_USART3_UART_Init>
+ 80007b6:	f000 f9bf 	bl	8000b38 <MX_USART3_UART_Init>
   MX_USB_OTG_FS_PCD_Init();
- 80007be:	f000 f9eb 	bl	8000b98 <MX_USB_OTG_FS_PCD_Init>
+ 80007ba:	f000 f9ed 	bl	8000b98 <MX_USB_OTG_FS_PCD_Init>
   MX_TIM4_Init();
- 80007c2:	f000 f929 	bl	8000a18 <MX_TIM4_Init>
+ 80007be:	f000 f92b 	bl	8000a18 <MX_TIM4_Init>
   MX_ADC1_Init();
- 80007c6:	f000 f8d5 	bl	8000974 <MX_ADC1_Init>
+ 80007c2:	f000 f8d7 	bl	8000974 <MX_ADC1_Init>
   /* USER CODE BEGIN 2 */
   ADC_INIT(&hadc1, &throttlePot);
- 80007ca:	491a      	ldr	r1, [pc, #104]	; (8000834 <main+0x90>)
- 80007cc:	481a      	ldr	r0, [pc, #104]	; (8000838 <main+0x94>)
- 80007ce:	f7ff fea7 	bl	8000520 <ADC_INIT>
+ 80007c6:	491b      	ldr	r1, [pc, #108]	; (8000834 <main+0x94>)
+ 80007c8:	481b      	ldr	r0, [pc, #108]	; (8000838 <main+0x98>)
+ 80007ca:	f7ff fea9 	bl	8000520 <ADC_INIT>
   ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, &hdma_tim4_ch1);
- 80007d2:	491a      	ldr	r1, [pc, #104]	; (800083c <main+0x98>)
- 80007d4:	481a      	ldr	r0, [pc, #104]	; (8000840 <main+0x9c>)
- 80007d6:	f7ff feb4 	bl	8000542 <ESC_INIT_CONTROLLER>
- 80007da:	6038      	str	r0, [r7, #0]
+ 80007ce:	491b      	ldr	r1, [pc, #108]	; (800083c <main+0x9c>)
+ 80007d0:	481b      	ldr	r0, [pc, #108]	; (8000840 <main+0xa0>)
+ 80007d2:	f7ff feb6 	bl	8000542 <ESC_INIT_CONTROLLER>
+ 80007d6:	6038      	str	r0, [r7, #0]
   int init = 0;
- 80007dc:	2300      	movs	r3, #0
- 80007de:	607b      	str	r3, [r7, #4]
+ 80007d8:	2300      	movs	r3, #0
+ 80007da:	607b      	str	r3, [r7, #4]
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  while (init < 100)
- 80007e0:	e00b      	b.n	80007fa <main+0x56>
+	  while (init < 1000)
+ 80007dc:	e00b      	b.n	80007f6 <main+0x56>
 	  {
 		  init++;
- 80007e2:	687b      	ldr	r3, [r7, #4]
- 80007e4:	3301      	adds	r3, #1
- 80007e6:	607b      	str	r3, [r7, #4]
+ 80007de:	687b      	ldr	r3, [r7, #4]
+ 80007e0:	3301      	adds	r3, #1
+ 80007e2:	607b      	str	r3, [r7, #4]
 		  ESC_UPDATE_THROTTLE(&myESCSet[1], 0);
- 80007e8:	683b      	ldr	r3, [r7, #0]
- 80007ea:	3318      	adds	r3, #24
- 80007ec:	2100      	movs	r1, #0
- 80007ee:	4618      	mov	r0, r3
- 80007f0:	f7ff ff1e 	bl	8000630 <ESC_UPDATE_THROTTLE>
-		  HAL_Delay(1);
- 80007f4:	2001      	movs	r0, #1
- 80007f6:	f000 fdc5 	bl	8001384 <HAL_Delay>
-	  while (init < 100)
- 80007fa:	687b      	ldr	r3, [r7, #4]
- 80007fc:	2b63      	cmp	r3, #99	; 0x63
- 80007fe:	ddf0      	ble.n	80007e2 <main+0x3e>
+ 80007e4:	683b      	ldr	r3, [r7, #0]
+ 80007e6:	3318      	adds	r3, #24
+ 80007e8:	2100      	movs	r1, #0
+ 80007ea:	4618      	mov	r0, r3
+ 80007ec:	f7ff ff20 	bl	8000630 <ESC_UPDATE_THROTTLE>
+		  HAL_Delay(10);
+ 80007f0:	200a      	movs	r0, #10
+ 80007f2:	f000 fdc7 	bl	8001384 <HAL_Delay>
+	  while (init < 1000)
+ 80007f6:	687b      	ldr	r3, [r7, #4]
+ 80007f8:	f5b3 7f7a 	cmp.w	r3, #1000	; 0x3e8
+ 80007fc:	dbef      	blt.n	80007de <main+0x3e>
 	  }
 	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
- 8000800:	683b      	ldr	r3, [r7, #0]
- 8000802:	f103 0218 	add.w	r2, r3, #24
- 8000806:	4b0f      	ldr	r3, [pc, #60]	; (8000844 <main+0xa0>)
- 8000808:	681b      	ldr	r3, [r3, #0]
- 800080a:	4619      	mov	r1, r3
- 800080c:	4610      	mov	r0, r2
- 800080e:	f7ff ff0f 	bl	8000630 <ESC_UPDATE_THROTTLE>
+ 80007fe:	683b      	ldr	r3, [r7, #0]
+ 8000800:	f103 0218 	add.w	r2, r3, #24
+ 8000804:	4b0f      	ldr	r3, [pc, #60]	; (8000844 <main+0xa4>)
+ 8000806:	681b      	ldr	r3, [r3, #0]
+ 8000808:	4619      	mov	r1, r3
+ 800080a:	4610      	mov	r0, r2
+ 800080c:	f7ff ff10 	bl	8000630 <ESC_UPDATE_THROTTLE>
 	  throttle++;
- 8000812:	4b0c      	ldr	r3, [pc, #48]	; (8000844 <main+0xa0>)
- 8000814:	681b      	ldr	r3, [r3, #0]
- 8000816:	3301      	adds	r3, #1
- 8000818:	4a0a      	ldr	r2, [pc, #40]	; (8000844 <main+0xa0>)
- 800081a:	6013      	str	r3, [r2, #0]
+ 8000810:	4b0c      	ldr	r3, [pc, #48]	; (8000844 <main+0xa4>)
+ 8000812:	681b      	ldr	r3, [r3, #0]
+ 8000814:	3301      	adds	r3, #1
+ 8000816:	4a0b      	ldr	r2, [pc, #44]	; (8000844 <main+0xa4>)
+ 8000818:	6013      	str	r3, [r2, #0]
 	  if (throttle > 2047)
- 800081c:	4b09      	ldr	r3, [pc, #36]	; (8000844 <main+0xa0>)
- 800081e:	681b      	ldr	r3, [r3, #0]
- 8000820:	f5b3 6f00 	cmp.w	r3, #2048	; 0x800
- 8000824:	d302      	bcc.n	800082c <main+0x88>
+ 800081a:	4b0a      	ldr	r3, [pc, #40]	; (8000844 <main+0xa4>)
+ 800081c:	681b      	ldr	r3, [r3, #0]
+ 800081e:	f5b3 6f00 	cmp.w	r3, #2048	; 0x800
+ 8000822:	d302      	bcc.n	800082a <main+0x8a>
 	  {
 		  throttle = 0;
- 8000826:	4b07      	ldr	r3, [pc, #28]	; (8000844 <main+0xa0>)
- 8000828:	2200      	movs	r2, #0
- 800082a:	601a      	str	r2, [r3, #0]
+ 8000824:	4b07      	ldr	r3, [pc, #28]	; (8000844 <main+0xa4>)
+ 8000826:	2200      	movs	r2, #0
+ 8000828:	601a      	str	r2, [r3, #0]
 	  }
-	  HAL_Delay(10);
- 800082c:	200a      	movs	r0, #10
- 800082e:	f000 fda9 	bl	8001384 <HAL_Delay>
-	  while (init < 100)
- 8000832:	e7e2      	b.n	80007fa <main+0x56>
+	  HAL_Delay(30);
+ 800082a:	201e      	movs	r0, #30
+ 800082c:	f000 fdaa 	bl	8001384 <HAL_Delay>
+	  while (init < 1000)
+ 8000830:	e7e1      	b.n	80007f6 <main+0x56>
+ 8000832:	bf00      	nop
  8000834:	20000668 	.word	0x20000668
  8000838:	20000560 	.word	0x20000560
  800083c:	20000608 	.word	0x20000608
@@ -1168,9 +1170,9 @@ static void MX_TIM4_Init(void)
  8000a48:	4b39      	ldr	r3, [pc, #228]	; (8000b30 <MX_TIM4_Init+0x118>)
  8000a4a:	2200      	movs	r2, #0
  8000a4c:	609a      	str	r2, [r3, #8]
-  htim4.Init.Period = 719;
+  htim4.Init.Period = 359;
  8000a4e:	4b38      	ldr	r3, [pc, #224]	; (8000b30 <MX_TIM4_Init+0x118>)
- 8000a50:	f240 22cf 	movw	r2, #719	; 0x2cf
+ 8000a50:	f240 1267 	movw	r2, #359	; 0x167
  8000a54:	60da      	str	r2, [r3, #12]
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
  8000a56:	4b36      	ldr	r3, [pc, #216]	; (8000b30 <MX_TIM4_Init+0x118>)
@@ -2748,7 +2750,7 @@ LoopFillZerobss:
  80012a6:	f004 fa05 	bl	80056b4 <__libc_init_array>
 /* Call the application's entry point.*/
   bl  main
- 80012aa:	f7ff fa7b 	bl	80007a4 <main>
+ 80012aa:	f7ff fa79 	bl	80007a0 <main>
   bx  lr    
  80012ae:	4770      	bx	lr
   ldr   sp, =_estack      /* set stack pointer */

@@ -70,8 +70,8 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #define DSHOT_TELEMETRY_MASK 	0b0000000000010000 	// DSHOT 1 bit for telemetry
 #define DSHOT_CHECKSUM_MASK		0b0000000000001111	// DSHOT 4 bits for checksum
 
-#define DSHOT150
-//#define DSHOT300
+//#define DSHOT150
+#define DSHOT300
 //#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
@@ -88,13 +88,13 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #define DSHOT_HIGH_BIT 	270 // High logic PWM value for DSHOT300
 #endif
 
-#ifdef DSHOT300
+#ifdef DSHOT600
 #define ARR				180 // Auto Reload Register
 #define DSHOT_LOW_BIT	68 // Low logic PWM value for DSHOT600
 #define DSHOT_HIGH_BIT 	135 // High logic PWM value for DSHOT600
 #endif
 
-#ifdef DSHOT300
+#ifdef DSHOT1200
 #define ARR				90 // Auto Reload Register
 #define DSHOT_LOW_BIT	34 // Low logic PWM value for DSHOT1200
 #define DSHOT_HIGH_BIT 	68 // High logic PWM value for DSHOT1200
@@ -126,25 +126,25 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 	// Throttle cannot exceed 11 bits, so max value is 2047
 	if (throttle >= 2048) throttle = 2047;
 	// Updating only throttle value, so telemetry is 0
-	uint8_t telemetry =0b0;
+	uint8_t telemetry =0b1;
 	// Updating only throttle value, so checksum is 0
-	uint8_t checksum = 0b0000;
+	uint8_t checksum = 0b1111;
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
 	dshotPacket[16] = 0;
-	// Populate checksum bits
-	for (int checksumBits = 0; checksumBits <= 3; checksumBits++)
-	{
-		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
-		checksum = checksum >> 1;
-	}
-	// Populate telemetry bit
-	__DSHOT_MAKE_BYTE(dshotPacket[4], telemetry);
 	// Populate throttle bits
-	for (int throttleBits = 5; throttleBits <= 15; throttleBits++)
+	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)
 	{
 		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
 		throttle = throttle >> 1;
+	}
+	// Populate telemetry bit
+	__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
+	// Populate checksum bits
+	for (int checksumBits = 12; checksumBits <= 15; checksumBits++)
+	{
+		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
+		checksum = checksum >> 1;
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
