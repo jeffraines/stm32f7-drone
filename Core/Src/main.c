@@ -46,15 +46,15 @@ ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim4;
+DMA_HandleTypeDef hdma_tim4_ch1;
 
 UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
-DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 /* USER CODE BEGIN PV */
 uint32_t throttlePot;
-uint32_t throttle = 1365;
+uint32_t throttle = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,15 +109,27 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   ADC_INIT(&hadc1, &throttlePot);
-  ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, &hdma_memtomem_dma2_stream0);
+  ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, &hdma_tim4_ch1);
+  int init = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ESC_UPDATE_THROTTLE(myESCSet, throttle);
-	  HAL_Delay(100);
+	  while (init < 100)
+	  {
+		  init++;
+		  ESC_UPDATE_THROTTLE(&myESCSet[1], 0);
+		  HAL_Delay(1);
+	  }
+	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
+	  throttle++;
+	  if (throttle > 2047)
+	  {
+		  throttle = 0;
+	  }
+	  HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -259,6 +271,10 @@ static void MX_TIM4_Init(void)
   htim4.Init.Period = 719;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_OC_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
@@ -269,34 +285,27 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.OCMode = TIM_OCMODE_ACTIVE;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  if (HAL_TIM_OC_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
+  __HAL_TIM_ENABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_1);
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
-  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_2);
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
-  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_3);
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  __HAL_TIM_DISABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_4);
   /* USER CODE BEGIN TIM4_Init 2 */
-  htim4.Instance->CR2 = TIM_CR2_CCDS;
   // Set DMA Transfers to 17 with DBL and destination to CCR1 (15) with DBA
-  htim4.Instance->DCR =  TIM_DCR_DBA_0 | TIM_DCR_DBA_2 | TIM_DCR_DBA_3; //CCR1
-  //htim4.Instance->DCR =  TIM_DCR_DBA_4; //CCR4
+  htim4.Instance->DCR =  TIM_DCR_DBA_1 | TIM_DCR_DBA_2 | TIM_DCR_DBA_3; // Transfer at CCR2, 1 transfer
   // Enable Update DMA Request
   htim4.Instance->DIER = TIM_DIER_UDE;
   // Enable DMA requests on CH1
@@ -378,38 +387,18 @@ static void MX_USB_OTG_FS_PCD_Init(void)
 
 /**
   * Enable DMA controller clock
-  * Configure DMA for memory to memory transfers
-  *   hdma_memtomem_dma2_stream0
   */
 static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* Configure DMA request hdma_memtomem_dma2_stream0 on DMA2_Stream0 */
-  hdma_memtomem_dma2_stream0.Instance = DMA2_Stream0;
-  hdma_memtomem_dma2_stream0.Init.Channel = DMA_CHANNEL_0;
-  hdma_memtomem_dma2_stream0.Init.Direction = DMA_MEMORY_TO_MEMORY;
-  hdma_memtomem_dma2_stream0.Init.PeriphInc = DMA_PINC_ENABLE;
-  hdma_memtomem_dma2_stream0.Init.MemInc = DMA_MINC_DISABLE;
-  hdma_memtomem_dma2_stream0.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-  hdma_memtomem_dma2_stream0.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-  hdma_memtomem_dma2_stream0.Init.Mode = DMA_NORMAL;
-  hdma_memtomem_dma2_stream0.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-  hdma_memtomem_dma2_stream0.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-  hdma_memtomem_dma2_stream0.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-  hdma_memtomem_dma2_stream0.Init.MemBurst = DMA_MBURST_SINGLE;
-  hdma_memtomem_dma2_stream0.Init.PeriphBurst = DMA_PBURST_SINGLE;
-  if (HAL_DMA_Init(&hdma_memtomem_dma2_stream0) != HAL_OK)
-  {
-    Error_Handler( );
-  }
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
   /* DMA2_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream4_IRQn);

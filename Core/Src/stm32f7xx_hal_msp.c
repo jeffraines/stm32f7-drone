@@ -26,6 +26,8 @@
 /* USER CODE END Includes */
 extern DMA_HandleTypeDef hdma_adc1;
 
+extern DMA_HandleTypeDef hdma_tim4_ch1;
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -163,20 +165,40 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 }
 
 /**
-* @brief TIM_PWM MSP Initialization
+* @brief TIM_OC MSP Initialization
 * This function configures the hardware resources used in this example
-* @param htim_pwm: TIM_PWM handle pointer
+* @param htim_oc: TIM_OC handle pointer
 * @retval None
 */
-void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
+void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
 {
-  if(htim_pwm->Instance==TIM4)
+  if(htim_oc->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM4_MspInit 0 */
 
   /* USER CODE END TIM4_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_TIM4_CLK_ENABLE();
+
+    /* TIM4 DMA Init */
+    /* TIM4_CH1 Init */
+    hdma_tim4_ch1.Instance = DMA1_Stream0;
+    hdma_tim4_ch1.Init.Channel = DMA_CHANNEL_2;
+    hdma_tim4_ch1.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_tim4_ch1.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_tim4_ch1.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_tim4_ch1.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_tim4_ch1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_tim4_ch1.Init.Mode = DMA_NORMAL;
+    hdma_tim4_ch1.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    hdma_tim4_ch1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&hdma_tim4_ch1) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(htim_oc,hdma[TIM_DMA_ID_CC1],hdma_tim4_ch1);
+
   /* USER CODE BEGIN TIM4_MspInit 1 */
 
   /* USER CODE END TIM4_MspInit 1 */
@@ -198,9 +220,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
     PD12     ------> TIM4_CH1
     PD13     ------> TIM4_CH2
     PD14     ------> TIM4_CH3
-    PD15     ------> TIM4_CH4
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -214,20 +235,23 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 
 }
 /**
-* @brief TIM_PWM MSP De-Initialization
+* @brief TIM_OC MSP De-Initialization
 * This function freeze the hardware resources used in this example
-* @param htim_pwm: TIM_PWM handle pointer
+* @param htim_oc: TIM_OC handle pointer
 * @retval None
 */
-void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* htim_pwm)
+void HAL_TIM_OC_MspDeInit(TIM_HandleTypeDef* htim_oc)
 {
-  if(htim_pwm->Instance==TIM4)
+  if(htim_oc->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM4_MspDeInit 0 */
 
   /* USER CODE END TIM4_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM4_CLK_DISABLE();
+
+    /* TIM4 DMA DeInit */
+    HAL_DMA_DeInit(htim_oc->hdma[TIM_DMA_ID_CC1]);
   /* USER CODE BEGIN TIM4_MspDeInit 1 */
 
   /* USER CODE END TIM4_MspDeInit 1 */

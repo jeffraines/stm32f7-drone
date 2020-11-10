@@ -124,14 +124,13 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 {
 	// Throttle cannot exceed 11 bits, so max value is 2047
-	if (throttle > 2048) throttle = 2047;
+	if (throttle >= 2048) throttle = 2047;
 	// Updating only throttle value, so telemetry is 0
 	uint8_t telemetry =0b0;
 	// Updating only throttle value, so checksum is 0
 	uint8_t checksum = 0b0000;
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
-	//uint32_t dshotPacketTest[17] = {0xAA,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 	dshotPacket[16] = 0;
 	// Populate checksum bits
 	for (int checksumBits = 0; checksumBits <= 3; checksumBits++)
@@ -149,10 +148,15 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
-	ESC->DMA->Lock = HAL_UNLOCKED;
-	ESC->DMA->State = HAL_DMA_STATE_READY;
-	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4));
-	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, 17);
+//	ESC->DMA->Lock = HAL_UNLOCKED;
+//	ESC->DMA->State = HAL_DMA_STATE_READY;
+	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
+	ESC->DMA->Instance->NDTR = 17;
+	ESC->DMA->Instance->M0AR = (uint32_t) &dshotPacket;
+	ESC->DMA->Instance->PAR = ESC->CCR;
+	__HAL_DMA_ENABLE(ESC->DMA);
+	while(ESC->DMA->Instance->CR & 0x1);
+//	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, 17);
 }
 
 void DSHOT_CMD_SEND(void)
