@@ -71,33 +71,42 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #define DSHOT_CHECKSUM_MASK		0b0000000000001111	// DSHOT 4 bits for checksum
 
 //#define DSHOT150
-#define DSHOT300
+//#define DSHOT300
 //#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
+#define ONESHOT
 
 #ifdef DSHOT150
-#define ARR				720 // Auto Reload Register
+#define TIMER_ARR		720 // Auto Reload Register
 #define DSHOT_LOW_BIT	270 // Low logic PWM value for DSHOT150
 #define DSHOT_HIGH_BIT 	540 // High logic PWM value for DSHOT150
 #endif
 
 #ifdef DSHOT300
-#define ARR				360 // Auto Reload Register
+#define TIMER_ARR		360 // Auto Reload Register
 #define DSHOT_LOW_BIT	135 // Low logic PWM value for DSHOT300
 #define DSHOT_HIGH_BIT 	270 // High logic PWM value for DSHOT300
 #endif
 
 #ifdef DSHOT600
-#define ARR				180 // Auto Reload Register
-#define DSHOT_LOW_BIT	68 // Low logic PWM value for DSHOT600
+#define TIMER_ARR		180 // Auto Reload Register
+#define DSHOT_LOW_BIT	68 	// Low logic PWM value for DSHOT600
 #define DSHOT_HIGH_BIT 	135 // High logic PWM value for DSHOT600
 #endif
 
 #ifdef DSHOT1200
-#define ARR				90 // Auto Reload Register
-#define DSHOT_LOW_BIT	34 // Low logic PWM value for DSHOT1200
-#define DSHOT_HIGH_BIT 	68 // High logic PWM value for DSHOT1200
+#define TIMER_ARR		90 	// Auto Reload Register
+#define DSHOT_LOW_BIT	34 	// Low logic PWM value for DSHOT1200
+#define DSHOT_HIGH_BIT 	68 	// High logic PWM value for DSHOT1200
+#endif
+
+#ifdef MULTISHOT
+#define TIMER_ARR 		1350 // Auto Reload Register
+#endif
+
+#ifdef ONESHOT
+#define TIMER_ARR 		4500 // Auto Reload Register
 #endif
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
@@ -106,6 +115,7 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 
 ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
 {
+	timer->Instance->ARR = TIMER_ARR -1;
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
@@ -159,17 +169,13 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 //	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, 17);
 }
 
-void DSHOT_CMD_SEND(void)
-{
-
-}
-
 #endif
 
-#ifdef MULTISHOT
+#if defined(MULTISHOT) || defined(ONESHOT)
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* hdmaArray[])
+ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
 {
+	timer->Instance->ARR = TIMER_ARR - 1;
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
@@ -177,23 +183,22 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
 		ESC_CONTROLLER[i].Timer = timer;
-		ESC_CONTROLLER[i].DMA = hdmaArray[i];
-		HAL_DMA_Start(hdmaArray[i], (uint32_t) &ESC_CONTROLLER[i].Throttle, (uint32_t) &timer->Instance->CCR1 + (4*i), sizeof(ESC_CONTROLLER[i].Throttle));
+		ESC_CONTROLLER[i].DMA = dma;
+		ESC_CONTROLLER[i].CCR = (uint32_t) &(timer->Instance->CCR1) + (4*i);
+		*((uint32_t *) ESC_CONTROLLER[i].CCR) = 0;
 		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
 	}
 	return ESC_CONTROLLER;
 }
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC)
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 {
-	// May want to handle error checking for DMA_FLAG_(TEIFx, DMEIFx, FEIFx) flags
-	__HAL_DMA_CLEAR_FLAG(ESC->DMA, DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 |
-						 	   DMA_FLAG_TCIF1_5 | DMA_FLAG_HTIF1_5 |
-							   DMA_FLAG_TCIF2_6 | DMA_FLAG_HTIF2_6 |
-							   DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7);	// Clear transfer and half transfer complete flags
-	__HAL_DMA_SET_COUNTER(ESC->DMA, sizeof(ESC->Throttle));
+	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
+	ESC->DMA->Instance->NDTR = 1;
+	ESC->DMA->Instance->M0AR = (uint32_t) &throttle;
+	ESC->DMA->Instance->PAR = ESC->CCR;
 	__HAL_DMA_ENABLE(ESC->DMA);
-	HAL_TIM_PWM_Start(ESC->Timer, ESC->Channel);
+	while(ESC->DMA->Instance->CR & 0x1);
  }
 #endif
 
