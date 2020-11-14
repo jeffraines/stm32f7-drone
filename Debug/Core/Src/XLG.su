@@ -1,1 +1,3 @@
-XLG.c:10:6:XLG_SEND	32	static
+XLG.c:19:6:XLG_WRITE	32	static
+XLG.c:26:6:XLG_READ	32	static
+XLG.c:33:6:XLG_G_DATA_READ	16	static

@@ -10,10 +10,17 @@
 
 #include "main.h"
 
+/* I2C Function Prototypes */
+void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize);
+void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t readSize);
+void XLG_G_DATA_READ(I2C_HandleTypeDef* i2c, uint8_t readByte[]);
+
 // I2C Address LSM6DS33
-#define ACCEL_I2C_ADDR		0x6A << 1
+#define XLG_I2C_ADDR		0x6A << 1
 // I2C Address LIS3MDL
-#define MAG_I2C_ADDR		0x1D << 1
+#define M_I2C_ADDR			0x1D << 1
+// Register size of XLG
+#define XLG_REG_SIZE		0x1
 
 /**************** LSM6DS33 Register Address Defines ****************/
 // Embedded functions configuration register
@@ -28,10 +35,10 @@
 #define ORIENT_CFG_G		0x0B	// Pitch, roll, yaw axis set
 
 // INT1 pin control
-#define INT1_CTRL			0x0D	// Set which interrupt is linked ot INT1 pin
+#define INT1_CTRL			0x0D	// Set which interrupt is linked to INT1 pin
 
 // INT2 pin control
-#define INT2_CTRL			0x0E	// Set which interrupt is linked ot INT2 pin
+#define INT2_CTRL			0x0E	// Set which interrupt is linked to INT2 pin
 
 // Who I am ID register - read only
 #define WHO_AM_I			0x0F	// Value fixed to 0x69h
@@ -43,7 +50,7 @@
 #define CTRL4_C				0x13	// Settings: XL bandwidth, GYRO sleep mode, INT signals, temp data on FIFO, data rdy mask, I2C disable, FIFO threshold use
 #define CTRL5_C				0x14	// Rounding read from output reg (no rounding default), GYRO/XL self-test
 #define CTRL6_C				0x15	// GYRO data edge/level/latch settings, XL high-performance mode disable
-#define CTRL7_G				0x16	// GYRO high-performance mode siable, GYRO filter settings, source reg rounding func, GYRO high-pass filter cutoff freq
+#define CTRL7_G				0x16	// GYRO high-performance mode disable, GYRO filter settings, source reg rounding func, GYRO high-pass filter cutoff freq
 #define CTRL8_XL			0x17	// XL low-pass filter settings
 #define CTRL9_XL			0x18 	// XL axis output enable (all enabled by default)
 #define CTRL10_C			0x19	// GYRO axis output enable (all enabled by default), enable embedded functionality, reset pedo step, enable sign motion func
@@ -119,14 +126,5 @@
 #define SM_THS				0x13	// Significant motion configuration register
 #define PEDO_DEB_REG		0x14	// Pedometer debounce configuration register
 #define STEP_COUNT_DELTA	0x15	// Time period register for step detection on delta time
-
-/* XL_G function prototypes */
-
-/* Function Summary:
- * Parameters:
- * Return:
- */
-
-void XL_SEND(I2C_HandleTypeDef* i2c);
 
 #endif /* SRC_ACCEL_H_ */

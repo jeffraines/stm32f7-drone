@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include "main.h"
 
+#define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
+#define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))
+
 typedef struct ESC
 {
 	uint32_t Throttle;

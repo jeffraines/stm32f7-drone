@@ -24,9 +24,9 @@
 /* USER CODE BEGIN Includes */
 #include "ESC.h"
 #include "ADC.h"
+#include "XLG.h"
 #include <string.h>
 #include <stdio.h>
-#include <XLG.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +61,8 @@ UART_HandleTypeDef huart3;
 uint32_t throttlePot;
 uint32_t throttle = 0;
 uint8_t buf[24];
+uint8_t gyroData[6] = {0};
+uint8_t writeByte = 0b0000001;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -124,11 +126,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ACCEL_INIT(&hi2c1);
+	  XLG_G_DATA_READ(&hi2c1, gyroData);
+	  XLG_WRITE(&hi2c1, FIFO_CTRL1, &writeByte, 1);
 	  sprintf((char*)buf, "Value: %lu\n\r", throttlePot);
 	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  throttle = (throttlePot / (6.07)) + 675;		// MULTISHOT
-	  throttle = (throttlePot / (1.82)) + 2250;		// ONESHOT
+	  ONESHOT_ADC_CONV(throttle, throttlePot);
 	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
 	  throttle++;
 	  HAL_Delay(10);
