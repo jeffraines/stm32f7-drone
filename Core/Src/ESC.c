@@ -61,9 +61,6 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 //#define TIM_CHANNEL_6                      0x00000014U	0b010100
 //#define TIM_CHANNEL_ALL                    0x0000003CU	0b111100
 
-#include <stdint.h>
-#include <stdlib.h>
-#include "main.h"
 #include "ESC.h"
 
 #define DSHOT_THROTTLE_MASK 	0b1111111111100000	// DSHOT 11 bits for throttle

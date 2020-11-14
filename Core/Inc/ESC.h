@@ -8,6 +8,10 @@
 #ifndef INC_ESC_H_
 #define INC_ESC_H_
 
+#include <stdint.h>
+#include <stdlib.h>
+#include "main.h"
+
 typedef struct ESC
 {
 	uint32_t Throttle;

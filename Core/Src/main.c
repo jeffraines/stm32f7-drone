@@ -24,9 +24,9 @@
 /* USER CODE BEGIN Includes */
 #include "ESC.h"
 #include "ADC.h"
-#include "ACCEL.h"
 #include <string.h>
 #include <stdio.h>
+#include <XLG.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
