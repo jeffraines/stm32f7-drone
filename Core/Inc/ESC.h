@@ -14,6 +14,7 @@
 
 #define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
 #define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))
+#define DSHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = (ADC_VALUE - 1600))
 
 typedef struct ESC
 {
@@ -37,6 +38,6 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemetry, uint8_t checksum);
 
 #endif /* INC_ESC_H_ */

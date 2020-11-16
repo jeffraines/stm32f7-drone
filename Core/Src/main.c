@@ -63,6 +63,15 @@ uint32_t throttle = 0;
 uint8_t buf[24];
 uint8_t gyroData[6] = {0};
 uint8_t writeByte = 0b0000001;
+uint8_t button1 = 0;
+uint8_t button1Prev = 0;
+uint8_t button1Flag = 1;
+uint8_t button2 = 0;
+uint8_t button2Prev = 0;
+uint8_t button2Flag = 1;
+uint8_t checksum = 0;
+uint32_t telemetry = 0;
+uint8_t throttleLow = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +105,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -126,14 +135,42 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  XLG_G_DATA_READ(&hi2c1, gyroData);
-	  XLG_WRITE(&hi2c1, FIFO_CTRL1, &writeByte, 1);
-	  sprintf((char*)buf, "Value: %lu\n\r", throttlePot);
+	  button1Prev = button1;
+	  button2Prev = button2;
+	  button1 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_14);
+	  button2 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_15);
+	  if (button1 && button1Flag)
+	  {
+		  button1Flag = 0;
+		  if (checksum < 0b11111)
+		  {
+			  checksum++;
+		  }
+
+		  else checksum = 0;
+	  }
+	  else if (!button1 && !button1Flag)
+	  {
+		  button1Flag = 1;
+	  }
+	  if (button2 && button2Flag)
+	  {
+		  button2Flag = 0;
+		  if (telemetry < 0b1) telemetry++;
+		  else telemetry = 0;
+	  }
+	  else if (!button2 && !button2Flag)
+	  {
+		  button2Flag = 1;
+	  }
+	  //XLG_G_DATA_READ(&hi2c1, gyroData);
+	  //XLG_WRITE(&hi2c1, FIFO_CTRL1, &writeByte, 1);
 	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  ONESHOT_ADC_CONV(throttle, throttlePot);
-	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
-	  throttle++;
-	  HAL_Delay(10);
+	  DSHOT_ADC_CONV(throttle, throttlePot);
+	  if(throttle > 3000) throttle = 0;
+	  //sprintf((char*)buf, "Throttle:%lu\n\rCMD:%lu\n\r", throttle, checksum);
+	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
+	  //HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -462,6 +499,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -477,6 +515,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PF14 PF15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD3_Pin|LD2_Pin;

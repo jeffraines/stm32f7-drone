@@ -67,12 +67,12 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #define DSHOT_TELEMETRY_MASK 	0b0000000000010000 	// DSHOT 1 bit for telemetry
 #define DSHOT_CHECKSUM_MASK		0b0000000000001111	// DSHOT 4 bits for checksum
 
-//#define DSHOT150
+#define DSHOT150
 //#define DSHOT300
 //#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
-#define ONESHOT
+//#define ONESHOT
 
 #ifdef DSHOT150
 #define TIMER_ARR		720 // Auto Reload Register
@@ -128,42 +128,35 @@ ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef*
 	return ESC_CONTROLLER;
 }
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemetry, uint8_t checksum)
 {
+	if(!telemetry) checksum = 0;
 	// Throttle cannot exceed 11 bits, so max value is 2047
 	if (throttle >= 2048) throttle = 2047;
-	// Updating only throttle value, so telemetry is 0
-	uint8_t telemetry =0b1;
-	// Updating only throttle value, so checksum is 0
-	uint8_t checksum = 0b1111;
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
 	dshotPacket[16] = 0;
-	// Populate throttle bits
-	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)
-	{
-		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
-		throttle = throttle >> 1;
-	}
-	// Populate telemetry bit
-	__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
 	// Populate checksum bits
-	for (int checksumBits = 12; checksumBits <= 15; checksumBits++)
+	for (int checksumBits = 15; checksumBits >= 11; checksumBits--)
 	{
 		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
 		checksum = checksum >> 1;
 	}
+	// Populate telemetry bit
+	//__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
+	// Populate throttle bits
+	for (int throttleBits = 10; throttleBits >=0; throttleBits--)	{
+		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
+		throttle = throttle >> 1;
+	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
-//	ESC->DMA->Lock = HAL_UNLOCKED;
-//	ESC->DMA->State = HAL_DMA_STATE_READY;
 	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
 	ESC->DMA->Instance->NDTR = 17;
 	ESC->DMA->Instance->M0AR = (uint32_t) &dshotPacket;
 	ESC->DMA->Instance->PAR = ESC->CCR;
 	__HAL_DMA_ENABLE(ESC->DMA);
 	while(ESC->DMA->Instance->CR & 0x1);
-//	HAL_DMA_Start(ESC->DMA, (uint32_t) &dshotPacket, ESC->CCR, 17);
 }
 
 #endif
