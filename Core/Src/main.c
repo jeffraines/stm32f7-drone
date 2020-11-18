@@ -61,17 +61,11 @@ UART_HandleTypeDef huart3;
 uint32_t throttlePot;
 uint32_t throttle = 0;
 uint8_t buf[24];
-uint8_t gyroData[6] = {0};
-uint8_t writeByte = 0b0000001;
-uint8_t button1 = 0;
-uint8_t button1Prev = 0;
-uint8_t button1Flag = 1;
-uint8_t button2 = 0;
-uint8_t button2Prev = 0;
-uint8_t button2Flag = 1;
+XLG_DATA gData;
+XLG_DATA xlData;
+uint8_t writeByte = 0b11111111;
 uint8_t checksum = 0;
 uint32_t telemetry = 0;
-uint8_t throttleLow = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,7 +99,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -129,48 +123,23 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ADC_INIT(&hadc1, &throttlePot);
   ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, &hdma_tim4_ch1);
+  XLG_INIT(&hi2c1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  button1Prev = button1;
-	  button2Prev = button2;
-	  button1 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_14);
-	  button2 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_15);
-	  if (button1 && button1Flag)
-	  {
-		  button1Flag = 0;
-		  if (checksum < 0b11111)
-		  {
-			  checksum++;
-		  }
-
-		  else checksum = 0;
-	  }
-	  else if (!button1 && !button1Flag)
-	  {
-		  button1Flag = 1;
-	  }
-	  if (button2 && button2Flag)
-	  {
-		  button2Flag = 0;
-		  if (telemetry < 0b1) telemetry++;
-		  else telemetry = 0;
-	  }
-	  else if (!button2 && !button2Flag)
-	  {
-		  button2Flag = 1;
-	  }
-	  //XLG_G_DATA_READ(&hi2c1, gyroData);
-	  //XLG_WRITE(&hi2c1, FIFO_CTRL1, &writeByte, 1);
+	  XLG_G_DATA_READ(&hi2c1, &gData);
+	  XLG_XL_DATA_READ(&hi2c1, &xlData);
+//	  sprintf((char*)buf, "XL = X:%i Y:%i Z:%i\n\r", xlData.x, xlData.y, xlData.z);
+//	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	  sprintf((char*)buf, "G = X:%i Y:%i Z:%i\n\r", gData.x, gData.y, gData.z);
 	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  DSHOT_ADC_CONV(throttle, throttlePot);
-	  if(throttle > 3000) throttle = 0;
-	  //sprintf((char*)buf, "Throttle:%lu\n\rCMD:%lu\n\r", throttle, checksum);
-	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
-	  //HAL_Delay(10);
+	  HAL_Delay(100);
+	  //DSHOT_ADC_CONV(throttle, throttlePot);
+	  //if(throttle > 3000) throttle = 0;
+	  //ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

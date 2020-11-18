@@ -1,3 +1,5 @@
-XLG.c:19:6:XLG_WRITE	32	static
-XLG.c:26:6:XLG_READ	32	static
-XLG.c:33:6:XLG_G_DATA_READ	16	static
+XLG.c:20:6:XLG_INIT	24	static
+XLG.c:29:6:XLG_WRITE	32	static
+XLG.c:36:6:XLG_READ	40	static
+XLG.c:44:6:XLG_G_DATA_READ	24	static
+XLG.c:61:6:XLG_XL_DATA_READ	24	static

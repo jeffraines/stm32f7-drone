@@ -10,10 +10,20 @@
 
 #include "main.h"
 
+/* 3-Axis Data Struct */
+typedef struct XLG_DATA
+{
+	int16_t x;
+	int16_t y;
+	int16_t z;
+}XLG_DATA;
+
 /* I2C Function Prototypes */
+void XLG_INIT(I2C_HandleTypeDef* i2c);
 void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize);
 void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t readSize);
-void XLG_G_DATA_READ(I2C_HandleTypeDef* i2c, uint8_t readByte[]);
+void XLG_G_DATA_READ(I2C_HandleTypeDef* i2c, XLG_DATA* gData);
+void XLG_XL_DATA_READ(I2C_HandleTypeDef* i2c, XLG_DATA* xlData);
 
 // I2C Address LSM6DS33
 #define XLG_I2C_ADDR		0x6A << 1
