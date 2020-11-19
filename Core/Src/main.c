@@ -133,13 +133,23 @@ int main(void)
 	  XLG_G_DATA_READ(&hi2c1, &gData);
 	  XLG_XL_DATA_READ(&hi2c1, &xlData);
 //	  sprintf((char*)buf, "XL = X:%i Y:%i Z:%i\n\r", xlData.x, xlData.y, xlData.z);
+//	  if (gData.dataReady)
+//	  {
+//		  sprintf((char*)buf, "%i\r\n", gData.x);
+//		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//	  }
+	  if (xlData.dataReady)
+	  {
+		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
+		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
+		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	  }
+//	  sprintf((char*)buf, "G = X:%i Y:%i Z:%i\n\r", gData.x, gData.y, gData.z);
 //	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  sprintf((char*)buf, "G = X:%i Y:%i Z:%i\n\r", gData.x, gData.y, gData.z);
-	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  HAL_Delay(100);
-	  //DSHOT_ADC_CONV(throttle, throttlePot);
-	  //if(throttle > 3000) throttle = 0;
-	  //ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
+//	  HAL_Delay(100);
+//	  DSHOT_ADC_CONV(throttle, throttlePot);
+//	  if(throttle > 3000) throttle = 0;
+//	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

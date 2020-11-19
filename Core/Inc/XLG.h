@@ -9,6 +9,7 @@
 #define SRC_XLG_H_
 
 #include "main.h"
+#include "stdbool.h"
 
 /* 3-Axis Data Struct */
 typedef struct XLG_DATA
@@ -16,6 +17,7 @@ typedef struct XLG_DATA
 	int16_t x;
 	int16_t y;
 	int16_t z;
+	bool dataReady;
 }XLG_DATA;
 
 /* I2C Function Prototypes */
