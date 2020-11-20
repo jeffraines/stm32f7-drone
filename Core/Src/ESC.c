@@ -112,7 +112,7 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 
 ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
 {
-	timer->Instance->ARR = TIMER_ARR -1;
+	timer->Instance->ARR = TIMER_ARR - 1;
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{

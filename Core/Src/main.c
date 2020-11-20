@@ -52,6 +52,7 @@ I2C_HandleTypeDef hi2c1;
 DMA_HandleTypeDef hdma_i2c1_rx;
 DMA_HandleTypeDef hdma_i2c1_tx;
 
+TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 DMA_HandleTypeDef hdma_tim4_ch1;
 
@@ -66,6 +67,7 @@ XLG_DATA xlData;
 uint8_t writeByte = 0b11111111;
 uint8_t checksum = 0;
 uint32_t telemetry = 0;
+uint8_t motorNum = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +79,7 @@ static void MX_USB_OTG_FS_USB_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -120,9 +123,11 @@ int main(void)
   MX_TIM4_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   ADC_INIT(&hadc1, &throttlePot);
-  ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim4, &hdma_tim4_ch1);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  ESC_CONTROLLER* myESCSet = ESC_INIT_CONTROLLER(&htim3, &hdma_tim4_ch1);
   XLG_INIT(&hi2c1);
   /* USER CODE END 2 */
 
@@ -132,24 +137,18 @@ int main(void)
   {
 	  XLG_G_DATA_READ(&hi2c1, &gData);
 	  XLG_XL_DATA_READ(&hi2c1, &xlData);
-//	  sprintf((char*)buf, "XL = X:%i Y:%i Z:%i\n\r", xlData.x, xlData.y, xlData.z);
-//	  if (gData.dataReady)
+//	  if (xlData.dataReady)
 //	  {
-//		  sprintf((char*)buf, "%i\r\n", gData.x);
+//		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
+//		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
 //		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
 //	  }
-	  if (xlData.dataReady)
-	  {
-		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
-		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
-		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  }
-//	  sprintf((char*)buf, "G = X:%i Y:%i Z:%i\n\r", gData.x, gData.y, gData.z);
-//	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  HAL_Delay(100);
 //	  DSHOT_ADC_CONV(throttle, throttlePot);
-//	  if(throttle > 3000) throttle = 0;
-//	  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle, telemetry, checksum);
+	  throttle++;
+	  if(throttle > 3000) throttle = 0;
+	  ESC_UPDATE_THROTTLE(&myESCSet[motorNum], throttle, telemetry, checksum);
+	  motorNum++;
+	  if (motorNum > 3) motorNum = 0;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -316,6 +315,67 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 359;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
   * @brief TIM4 Initialization Function
   * @param None
   * @retval None
@@ -354,7 +414,7 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_ACTIVE;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_OC_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -363,6 +423,7 @@ static void MX_TIM4_Init(void)
   }
   __HAL_TIM_ENABLE_OCxPRELOAD(&htim4, TIM_CHANNEL_1);
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -477,11 +538,11 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
