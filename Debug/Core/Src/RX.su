@@ -1,1 +1,2 @@
-RX.c:9:6:RX_BUTTON_INIT	4	static
+RX.c:10:16:RX_INIT	32	static
+RX.c:25:6:RX_UPDATE	16	static

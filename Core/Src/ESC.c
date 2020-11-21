@@ -67,9 +67,9 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 #define DSHOT_TELEMETRY_MASK 	0b0000000000010000 	// DSHOT 1 bit for telemetry
 #define DSHOT_CHECKSUM_MASK		0b0000000000001111	// DSHOT 4 bits for checksum
 
-#define DSHOT150
+//#define DSHOT150
 //#define DSHOT300
-//#define DSHOT600
+#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
 //#define ONESHOT
@@ -110,20 +110,22 @@ DSHOT_CMD_SAVE_SETTINGS							= 19	|0000000000010011|
 
 #define __DSHOT_MAKE_BYTE(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
 {
-	timer->Instance->ARR = TIMER_ARR - 1;
+	dmaTimerTick->Instance->ARR = TIMER_ARR - 1;
+	pwmTimer->Instance->ARR = TIMER_ARR - 1;
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
 		ESC_CONTROLLER[i].Throttle = 0;
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
-		ESC_CONTROLLER[i].Timer = timer;
+		ESC_CONTROLLER[i].Timer = dmaTimerTick;
 		ESC_CONTROLLER[i].DMA = dma;
-		ESC_CONTROLLER[i].CCR = (uint32_t) &(timer->Instance->CCR1) + (4*i);
+		ESC_CONTROLLER[i].CCR = (uint32_t) &(dmaTimerTick->Instance->CCR1) + (4*i);
 		*((uint32_t *) ESC_CONTROLLER[i].CCR) = 0;
-		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
+		HAL_TIM_PWM_Start(dmaTimerTick, ESC_CONTROLLER[i].Channel);
+		HAL_TIM_PWM_Start(pwmTimer, TIM_CHANNEL_1);
 	}
 	return ESC_CONTROLLER;
 }

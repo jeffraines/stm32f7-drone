@@ -5,41 +5,28 @@
  *      Author: Jeff Raines
  */
 
+#include "RX.h"
 
-void RX_BUTTON_INIT()
+RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches, DMA_HandleTypeDef* DMA)
 {
-//	uint8_t button1 = 0;
-//	uint8_t button1Prev = 0;
-//	uint8_t button1Flag = 1;
-//	uint8_t button2 = 0;
-//	uint8_t button2Prev = 0;
-//	uint8_t button2Flag = 1;
-//	button1Prev = button1;
-//	button2Prev = button2;
-//	button1 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_14);
-//	button2 = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_15);
-//	if (button1 && button1Flag)
-//	{
-//	  button1Flag = 0;
-//	  if (checksum < 0b11111)
-//	  {
-//		  checksum++;
-//	  }
-//
-//	  else checksum = 0;
-//	}
-//	else if (!button1 && !button1Flag)
-//	{
-//	  button1Flag = 1;
-//	}
-//	if (button2 && button2Flag)
-//	{
-//	  button2Flag = 0;
-//	  if (telemetry < 0b1) telemetry++;
-//	  else telemetry = 0;
-//	}
-//	else if (!button2 && !button2Flag)
-//	{
-//	  button2Flag = 1;
-//	}
+	RX_CONTROLLER* RX_CONTROLLER = malloc(sizeof(RX_CONTROLLER));
+	RX_CONTROLLER->throttle = 0;
+	RX_CONTROLLER->pitch = 0;
+	RX_CONTROLLER->roll = 0;
+	RX_CONTROLLER->yaw = 0;
+	RX_CONTROLLER->switchA = 0;
+	RX_CONTROLLER->switchB = 0;
+	RX_CONTROLLER->timerSticks = timerSticks;
+	RX_CONTROLLER->timerSwitches = timerSwitches;
+	RX_CONTROLLER->DMA = DMA;
+	return RX_CONTROLLER;
+}
+
+void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER)
+{
+	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1, &RX_CONTROLLER->throttle, 4); // This will increment channel and data memory
+	while(RX_CONTROLLER->DMA->Instance->CR & 0x1);
+	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1, &RX_CONTROLLER->switchA, 1);
+	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_4, &RX_CONTROLLER->switchB, 1);
+	while(RX_CONTROLLER->DMA->Instance->CR & 0x1);
 }

@@ -32,7 +32,7 @@ typedef struct ESC
  * Return: Pointer to the beginning of an array populated with ESC structs.
  */
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma);
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma);
 
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
