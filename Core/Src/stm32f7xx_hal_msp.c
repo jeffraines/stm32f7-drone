@@ -28,8 +28,6 @@ extern DMA_HandleTypeDef hdma_i2c1_rx;
 
 extern DMA_HandleTypeDef hdma_i2c1_tx;
 
-extern DMA_HandleTypeDef hdma_tim2_up_ch3;
-
 extern DMA_HandleTypeDef hdma_tim4_ch1;
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +65,7 @@ extern DMA_HandleTypeDef hdma_tim4_ch1;
 /* USER CODE END 0 */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                                            /**
+                                        /**
   * Initializes the Global MSP.
   */
 void HAL_MspInit(void)
@@ -262,15 +260,15 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 }
 
 /**
-* @brief TIM_IC MSP Initialization
+* @brief TIM_Base MSP Initialization
 * This function configures the hardware resources used in this example
-* @param htim_ic: TIM_IC handle pointer
+* @param htim_base: TIM_Base handle pointer
 * @retval None
 */
-void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(htim_ic->Instance==TIM1)
+  if(htim_base->Instance==TIM1)
   {
   /* USER CODE BEGIN TIM1_MspInit 0 */
 
@@ -280,12 +278,14 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
 
     __HAL_RCC_GPIOE_CLK_ENABLE();
     /**TIM1 GPIO Configuration
+    PE7     ------> TIM1_ETR
     PE9     ------> TIM1_CH1
     PE11     ------> TIM1_CH2
     PE13     ------> TIM1_CH3
     PE14     ------> TIM1_CH4
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_14;
+    GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13
+                          |GPIO_PIN_14;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -296,7 +296,7 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
 
   /* USER CODE END TIM1_MspInit 1 */
   }
-  else if(htim_ic->Instance==TIM2)
+  else if(htim_base->Instance==TIM2)
   {
   /* USER CODE BEGIN TIM2_MspInit 0 */
 
@@ -315,31 +315,6 @@ void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* htim_ic)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* TIM2 DMA Init */
-    /* TIM2_UP_CH3 Init */
-    hdma_tim2_up_ch3.Instance = DMA1_Stream1;
-    hdma_tim2_up_ch3.Init.Channel = DMA_CHANNEL_3;
-    hdma_tim2_up_ch3.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_tim2_up_ch3.Init.PeriphInc = DMA_PINC_ENABLE;
-    hdma_tim2_up_ch3.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_tim2_up_ch3.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-    hdma_tim2_up_ch3.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-    hdma_tim2_up_ch3.Init.Mode = DMA_NORMAL;
-    hdma_tim2_up_ch3.Init.Priority = DMA_PRIORITY_HIGH;
-    hdma_tim2_up_ch3.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    hdma_tim2_up_ch3.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    hdma_tim2_up_ch3.Init.MemBurst = DMA_MBURST_INC4;
-    hdma_tim2_up_ch3.Init.PeriphBurst = DMA_PBURST_INC4;
-    if (HAL_DMA_Init(&hdma_tim2_up_ch3) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    /* Several peripheral DMA handle pointers point to the same DMA handle.
-     Be aware that there is only one stream to perform all the requested DMAs. */
-    __HAL_LINKDMA(htim_ic,hdma[TIM_DMA_ID_UPDATE],hdma_tim2_up_ch3);
-    __HAL_LINKDMA(htim_ic,hdma[TIM_DMA_ID_CC3],hdma_tim2_up_ch3);
 
   /* USER CODE BEGIN TIM2_MspInit 1 */
 
@@ -415,32 +390,11 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(htim->Instance==TIM2)
-  {
-  /* USER CODE BEGIN TIM2_MspPostInit 0 */
-
-  /* USER CODE END TIM2_MspPostInit 0 */
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**TIM2 GPIO Configuration
-    PA2     ------> TIM2_CH3
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN TIM2_MspPostInit 1 */
-
-  /* USER CODE END TIM2_MspPostInit 1 */
-  }
-  else if(htim->Instance==TIM3)
+  if(htim->Instance==TIM3)
   {
   /* USER CODE BEGIN TIM3_MspPostInit 0 */
 
   /* USER CODE END TIM3_MspPostInit 0 */
-
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -501,14 +455,14 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 
 }
 /**
-* @brief TIM_IC MSP De-Initialization
+* @brief TIM_Base MSP De-Initialization
 * This function freeze the hardware resources used in this example
-* @param htim_ic: TIM_IC handle pointer
+* @param htim_base: TIM_Base handle pointer
 * @retval None
 */
-void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef* htim_ic)
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 {
-  if(htim_ic->Instance==TIM1)
+  if(htim_base->Instance==TIM1)
   {
   /* USER CODE BEGIN TIM1_MspDeInit 0 */
 
@@ -517,18 +471,20 @@ void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef* htim_ic)
     __HAL_RCC_TIM1_CLK_DISABLE();
 
     /**TIM1 GPIO Configuration
+    PE7     ------> TIM1_ETR
     PE9     ------> TIM1_CH1
     PE11     ------> TIM1_CH2
     PE13     ------> TIM1_CH3
     PE14     ------> TIM1_CH4
     */
-    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_14);
+    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13
+                          |GPIO_PIN_14);
 
   /* USER CODE BEGIN TIM1_MspDeInit 1 */
 
   /* USER CODE END TIM1_MspDeInit 1 */
   }
-  else if(htim_ic->Instance==TIM2)
+  else if(htim_base->Instance==TIM2)
   {
   /* USER CODE BEGIN TIM2_MspDeInit 0 */
 
@@ -538,14 +494,10 @@ void HAL_TIM_IC_MspDeInit(TIM_HandleTypeDef* htim_ic)
 
     /**TIM2 GPIO Configuration
     PA0-WKUP     ------> TIM2_CH1
-    PA2     ------> TIM2_CH3
     PA3     ------> TIM2_CH4
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_3);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_3);
 
-    /* TIM2 DMA DeInit */
-    HAL_DMA_DeInit(htim_ic->hdma[TIM_DMA_ID_UPDATE]);
-    HAL_DMA_DeInit(htim_ic->hdma[TIM_DMA_ID_CC3]);
   /* USER CODE BEGIN TIM2_MspDeInit 1 */
 
   /* USER CODE END TIM2_MspDeInit 1 */

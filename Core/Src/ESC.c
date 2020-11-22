@@ -139,20 +139,21 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemet
 	uint32_t dshotPacket[17] = {0};
 	dshotPacket[16] = 0;
 	// Populate checksum bits
-	for (int checksumBits = 15; checksumBits >= 11; checksumBits--)
+	for (int checksumBits = 15; checksumBits >= 12; checksumBits--)
 	{
 		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
 		checksum = checksum >> 1;
 	}
 	// Populate telemetry bit
-	//__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
+	__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
 	// Populate throttle bits
-	for (int throttleBits = 10; throttleBits >=0; throttleBits--)	{
+	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)	{
 		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
 		throttle = throttle >> 1;
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
+	// TO DO: Change this back to HAL code. Maybe setting the registers manually is causing problems?
 	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
 	ESC->DMA->Instance->NDTR = 17;
 	ESC->DMA->Instance->M0AR = (uint32_t) &dshotPacket;

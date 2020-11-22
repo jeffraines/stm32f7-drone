@@ -84,8 +84,6 @@ void Error_Handler(void);
 #define TIM4_CH2_MOTOR_1_GPIO_Port GPIOD
 #define TIM4_CH3_MOTOR_2_Pin GPIO_PIN_14
 #define TIM4_CH3_MOTOR_2_GPIO_Port GPIOD
-#define USB_PowerSwitchOn_Pin GPIO_PIN_6
-#define USB_PowerSwitchOn_GPIO_Port GPIOG
 #define USB_OverCurrent_Pin GPIO_PIN_7
 #define USB_OverCurrent_GPIO_Port GPIOG
 #define TIM_3_CH1_MOTOR_4_Pin GPIO_PIN_9

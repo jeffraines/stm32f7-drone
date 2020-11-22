@@ -7,7 +7,7 @@
 
 #include "RX.h"
 
-RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches, DMA_HandleTypeDef* DMA)
+RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches)
 {
 	RX_CONTROLLER* RX_CONTROLLER = malloc(sizeof(RX_CONTROLLER));
 	RX_CONTROLLER->throttle = 0;
@@ -18,15 +18,23 @@ RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerS
 	RX_CONTROLLER->switchB = 0;
 	RX_CONTROLLER->timerSticks = timerSticks;
 	RX_CONTROLLER->timerSwitches = timerSwitches;
-	RX_CONTROLLER->DMA = DMA;
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSticks, TIM_CHANNEL_2);
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSticks, TIM_CHANNEL_3);
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSticks, TIM_CHANNEL_4);
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSwitches, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(RX_CONTROLLER->timerSwitches, TIM_CHANNEL_4);
 	return RX_CONTROLLER;
 }
 
+// TO DO: Debug this
+// TO DO: Convert the values before putting them RX_CONTROLLER. Probably best to load into local array then copy into RX_CONTROLLER
 void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER)
 {
-	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1, &RX_CONTROLLER->throttle, 4); // This will increment channel and data memory
-	while(RX_CONTROLLER->DMA->Instance->CR & 0x1);
-	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1, &RX_CONTROLLER->switchA, 1);
-	HAL_TIM_IC_Start_DMA(RX_CONTROLLER->timerSticks, TIM_CHANNEL_4, &RX_CONTROLLER->switchB, 1);
-	while(RX_CONTROLLER->DMA->Instance->CR & 0x1);
+	RX_CONTROLLER->throttle = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1);
+	RX_CONTROLLER->pitch = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_2);
+	RX_CONTROLLER->roll = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_3);
+	RX_CONTROLLER->yaw = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_4);
+	RX_CONTROLLER->switchA = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSwitches, TIM_CHANNEL_1);
+	RX_CONTROLLER->switchB = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSwitches, TIM_CHANNEL_4);
 }

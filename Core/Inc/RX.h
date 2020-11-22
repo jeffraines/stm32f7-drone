@@ -26,7 +26,7 @@ typedef struct RX_CONTROLLER
 	DMA_HandleTypeDef* DMA;
 } RX_CONTROLLER;
 
-RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches, DMA_HandleTypeDef* DMA);
+RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches);
 void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER);
 
 #endif /* SRC_RX_H_ */
