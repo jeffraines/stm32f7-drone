@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include "ESC.h"
 #include "ADC.h"
 #include "XLG.h"
@@ -138,6 +139,25 @@ int main(void)
   escDMASet[1] = hdma_tim4_ch2;
   ESC_CONTROLLER* myESCSet = ESC_INIT(&htim4, &htim3, escDMASet);
   RX_CONTROLLER* myRX = RX_INIT(&htim1, &htim2);
+
+
+  const int patternSize = 5;
+  int startTime = HAL_GetTick();
+  const int period = 1000;
+  uint32_t pattern[patternSize];
+  pattern[0] = DSHOT_CMD_LED0_ON;
+  pattern[1] = DSHOT_CMD_LED0_OFF;
+  pattern[2] = DSHOT_CMD_LED1_ON;
+  pattern[3] = DSHOT_CMD_LED1_OFF;
+  pattern[4] = DSHOT_CMD_LED2_ON;
+  pattern[5] = DSHOT_CMD_LED2_OFF;
+  pattern[6] = DSHOT_CMD_LED3_ON;
+  pattern[7] = DSHOT_CMD_LED3_OFF;
+
+
+  uint32_t testThrottle = 0;
+  int prevTimeSlot = -1;
+
 //  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
   /* USER CODE END 2 */
 
@@ -145,7 +165,25 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  RX_UPDATE(myRX);
+	  int currentTime = HAL_GetTick();
+//	  int currentTimeSlot = (currentTime - startTime) / period;
+//
+//	  if (currentTimeSlot != prevTimeSlot)
+//	  {
+//		  prevTimeSlot = currentTimeSlot;
+//		  ++testThrottle;
+//	  }
+
+	  int patternIndex = ((currentTime - startTime) / period) % patternSize;
+	  uint32_t testThrottle = pattern[patternIndex];
+
+	  if (testThrottle > 2047)
+	  {
+		  testThrottle = 0;
+	  }
+	  ESC_UPDATE_THROTTLE(&myESCSet[2], testThrottle);
+	  for (int i = 0; i < 10; i++) ESC_UPDATE_THROTTLE(&myESCSet[2], DSHOT_CMD_SAVE_SETTINGS);
+//	  RX_UPDATE(myRX);
 //	  XLG_G_DATA_READ(&hi2c1, &gData);
 //	  XLG_XL_DATA_READ(&hi2c1, &xlData);
 //	  if (xlData.dataReady)
@@ -159,20 +197,21 @@ int main(void)
 //	  sprintf((char*)buf, "%lu %lu %lu %lu %lu %lu\r\n", myRX->throttle, myRX->pitch, myRX->roll,
 //			  	  	  	  	  	  	  	  	  	   myRX->yaw, myRX->switchA, myRX->switchB);
 //	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  if (myRX->switchA > 600)
-	  {
-		  throttle = (myRX->throttle - 998) * 2.045 ;
-		  if (throttle < 30) throttle = 0;
-		  if (throttle > 1990) throttle = 2047;
+//	  if (myRX->switchA > 600)
+//	  {
+//		  throttle = (myRX->throttle - 998) * 2.045 ;
+//		  if (throttle < 30) throttle = 0;
+//		  if (throttle > 1990) throttle = 2047;
 //		  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
 //		  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
-		  ESC_UPDATE_THROTTLE(&myESCSet[2], throttle);
+//		  ESC_UPDATE_THROTTLE(&myESCSet[2], testThrottle);
 //		  ESC_UPDATE_THROTTLE(&myESCSet[3], throttle);
-	  }
-	  else
-	  {
-		  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-	  }
+//	  }
+//	  else
+//	  {
+//		 //
+//		 ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+//	  }
 
     /* USER CODE END WHILE */
 

@@ -81,7 +81,7 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
 
-#define __DSHOT_MAKE_BYTE(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
+#define __DSHOT_CONSUME_BIT(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
 ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
 {
@@ -105,28 +105,35 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwm
 	return ESC_CONTROLLER;
 }
 
+uint16_t makeDshotPacketBytes(uint32_t value)
+{
+	uint16_t packet = (value << 1) | 1;
+	int csum = 0;
+	int csumData = value;
+	for (int i = 0; i < 3; i++)
+	{
+		csum ^= csumData; // xor data by nibbles
+		csumData >>= 4;
+	}
+	csum &= 0xf;
+	packet = (packet << 4) | csum;
+	return packet;
+}
+
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 {
 	// Throttle cannot exceed 11 bits, so max value is 2047
 	if (throttle > DSHOT_MAX_THROTTLE) throttle = DSHOT_MAX_THROTTLE;
 	else if (throttle < DSHOT_MIN_THROTTLE) throttle = DSHOT_MIN_THROTTLE;
-	uint8_t checksum = 0b1111;
-	uint8_t telemetry = 0b1;
+ 	uint16_t dshotBytes = makeDshotPacketBytes(throttle);
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
 	dshotPacket[16] = 0;
 	// Populate checksum bits
-	for (int checksumBits = 15; checksumBits >= 12; checksumBits--)
+	for (int i = 15; i >= 0; i--)
 	{
-		__DSHOT_MAKE_BYTE(dshotPacket[checksumBits], checksum);
-		checksum = checksum >> 1;
-	}
-	// Populate telemetry bit
-	__DSHOT_MAKE_BYTE(dshotPacket[11], telemetry);
-	// Populate throttle bits
-	for (int throttleBits = 10; throttleBits >= 0; throttleBits--)	{
-		__DSHOT_MAKE_BYTE(dshotPacket[throttleBits], throttle);
-		throttle = throttle >> 1;
+		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotBytes);
+		dshotBytes >>= 1;
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
 	// Clear transfer and half transfer complete flags
@@ -148,7 +155,7 @@ void ESC_CMD_SEND(ESC_CONTROLLER* ESC, uint32_t cmd)
 	// Populate checksum bits
 	for (int i = 15; i >= 0; i--)
 	{
-		__DSHOT_MAKE_BYTE(dshotPacket[i], dshotCMD);
+		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotCMD);
 		dshotCMD = dshotCMD >> 1;
 	}
 	// Setup the DMA stream to send the dshotPacket bytes to the CCR
