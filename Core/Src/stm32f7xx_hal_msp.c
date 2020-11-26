@@ -30,6 +30,8 @@ extern DMA_HandleTypeDef hdma_i2c1_tx;
 
 extern DMA_HandleTypeDef hdma_tim4_ch1;
 
+extern DMA_HandleTypeDef hdma_tim4_ch2;
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -198,7 +200,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_LINKDMA(hi2c,hdmarx,hdma_i2c1_rx);
 
     /* I2C1_TX Init */
-    hdma_i2c1_tx.Instance = DMA1_Stream7;
+    hdma_i2c1_tx.Instance = DMA1_Stream6;
     hdma_i2c1_tx.Init.Channel = DMA_CHANNEL_1;
     hdma_i2c1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
     hdma_i2c1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -372,13 +374,37 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
     hdma_tim4_ch1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
     hdma_tim4_ch1.Init.Mode = DMA_NORMAL;
     hdma_tim4_ch1.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    hdma_tim4_ch1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    hdma_tim4_ch1.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    hdma_tim4_ch1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    hdma_tim4_ch1.Init.MemBurst = DMA_MBURST_SINGLE;
+    hdma_tim4_ch1.Init.PeriphBurst = DMA_PBURST_SINGLE;
     if (HAL_DMA_Init(&hdma_tim4_ch1) != HAL_OK)
     {
       Error_Handler();
     }
 
     __HAL_LINKDMA(htim_oc,hdma[TIM_DMA_ID_CC1],hdma_tim4_ch1);
+
+    /* TIM4_CH2 Init */
+    hdma_tim4_ch2.Instance = DMA1_Stream3;
+    hdma_tim4_ch2.Init.Channel = DMA_CHANNEL_2;
+    hdma_tim4_ch2.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_tim4_ch2.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_tim4_ch2.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_tim4_ch2.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_tim4_ch2.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    hdma_tim4_ch2.Init.Mode = DMA_NORMAL;
+    hdma_tim4_ch2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    hdma_tim4_ch2.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    hdma_tim4_ch2.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    hdma_tim4_ch2.Init.MemBurst = DMA_MBURST_SINGLE;
+    hdma_tim4_ch2.Init.PeriphBurst = DMA_PBURST_SINGLE;
+    if (HAL_DMA_Init(&hdma_tim4_ch2) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(htim_oc,hdma[TIM_DMA_ID_CC2],hdma_tim4_ch2);
 
   /* USER CODE BEGIN TIM4_MspInit 1 */
 
@@ -439,9 +465,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
     /**TIM4 GPIO Configuration
     PD12     ------> TIM4_CH1
     PD13     ------> TIM4_CH2
-    PD14     ------> TIM4_CH3
     */
-    GPIO_InitStruct.Pin = TIM4_CH1_DMA_LATCH_Pin|TIM4_CH2_MOTOR_1_Pin|TIM4_CH3_MOTOR_2_Pin;
+    GPIO_InitStruct.Pin = TIM4_CH1_DMA_LATCH_Pin|TIM4_CH2_MOTOR_1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -545,6 +570,7 @@ void HAL_TIM_OC_MspDeInit(TIM_HandleTypeDef* htim_oc)
 
     /* TIM4 DMA DeInit */
     HAL_DMA_DeInit(htim_oc->hdma[TIM_DMA_ID_CC1]);
+    HAL_DMA_DeInit(htim_oc->hdma[TIM_DMA_ID_CC2]);
   /* USER CODE BEGIN TIM4_MspDeInit 1 */
 
   /* USER CODE END TIM4_MspDeInit 1 */

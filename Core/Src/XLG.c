@@ -19,7 +19,7 @@
 
 void XLG_INIT(I2C_HandleTypeDef* i2c)
 {
-	uint8_t writeThis = 0b10100000;
+	uint8_t writeThis = 0b10000000;
 	XLG_WRITE(i2c, CTRL1_XL, &writeThis, 1);
 	writeThis = 0b10001100;
 	XLG_WRITE(i2c, CTRL2_G, &writeThis, 1);

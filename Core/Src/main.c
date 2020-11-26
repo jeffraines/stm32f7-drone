@@ -57,18 +57,20 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 DMA_HandleTypeDef hdma_tim4_ch1;
+DMA_HandleTypeDef hdma_tim4_ch2;
 
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 uint32_t throttlePot;
-uint32_t throttle = 0;
+int throttle = 0;
 XLG_DATA gData;
 XLG_DATA xlData;
 uint8_t writeByte = 0b11111111;
-uint8_t checksum = 0;
-uint32_t telemetry = 0;
+uint8_t checksum = 0b1111;
+uint32_t telemetry = 0b1;
 uint8_t motorNum = 0;
+DMA_HandleTypeDef escDMASet[2];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -132,8 +134,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ADC_INIT(&hadc1, &throttlePot);
   XLG_INIT(&hi2c1);
-  ESC_CONTROLLER* myESCSet = ESC_INIT(&htim3, &htim4, &hdma_tim4_ch1);
+  escDMASet[0] = hdma_tim4_ch1;
+  escDMASet[1] = hdma_tim4_ch2;
+  ESC_CONTROLLER* myESCSet = ESC_INIT(&htim4, &htim3, escDMASet);
   RX_CONTROLLER* myRX = RX_INIT(&htim1, &htim2);
+//  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -141,25 +146,34 @@ int main(void)
   while (1)
   {
 	  RX_UPDATE(myRX);
-	  XLG_G_DATA_READ(&hi2c1, &gData);
-	  XLG_XL_DATA_READ(&hi2c1, &xlData);
-	  if (xlData.dataReady)
-	  {
-		  uint8_t buf[48];
-		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
-		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
-		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	  }
+//	  XLG_G_DATA_READ(&hi2c1, &gData);
+//	  XLG_XL_DATA_READ(&hi2c1, &xlData);
+//	  if (xlData.dataReady)
+//	  {
+//		  uint8_t buf[48];
+//		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
+//		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
+//		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//	  }
 //	  uint8_t buf[48];
 //	  sprintf((char*)buf, "%lu %lu %lu %lu %lu %lu\r\n", myRX->throttle, myRX->pitch, myRX->roll,
 //			  	  	  	  	  	  	  	  	  	   myRX->yaw, myRX->switchA, myRX->switchB);
 //	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  DSHOT_ADC_CONV(throttle, throttlePot);
-//	  throttle++;
-//	  if(throttle > 3000) throttle = 0;
-//	  ESC_UPDATE_THROTTLE(&myESCSet[motorNum], throttle, telemetry, checksum);
-//	  motorNum++;
-//	  if (motorNum > 3) motorNum = 0;
+	  if (myRX->switchA > 600)
+	  {
+		  throttle = (myRX->throttle - 998) * 2.045 ;
+		  if (throttle < 30) throttle = 0;
+		  if (throttle > 1990) throttle = 2047;
+//		  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
+//		  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
+		  ESC_UPDATE_THROTTLE(&myESCSet[2], throttle);
+//		  ESC_UPDATE_THROTTLE(&myESCSet[3], throttle);
+	  }
+	  else
+	  {
+		  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -345,9 +359,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 1079;
+  htim1.Init.Prescaler = 215;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 1999;
+  htim1.Init.Period = 9999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -421,9 +435,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 1079;
+  htim2.Init.Prescaler = 215;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1999;
+  htim2.Init.Period = 19999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -553,30 +567,21 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 0;
+  sConfigOC.OCMode = TIM_OCMODE_ACTIVE;
+  sConfigOC.Pulse = 1;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_OC_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  if (HAL_TIM_OC_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -584,9 +589,9 @@ static void MX_TIM4_Init(void)
   // Set DMA Transfers to 17 with DBL and destination to CCR1 (15) with DBA
   htim4.Instance->DCR =  TIM_DCR_DBA_1 | TIM_DCR_DBA_2 | TIM_DCR_DBA_3; // Transfer at CCR2, 1 transfer
   // Enable Update DMA Request
-  htim4.Instance->DIER = TIM_DIER_UDE;
+  //htim4.Instance->DIER = TIM_DIER_UDE;
   // Enable DMA requests on CH1
-  htim4.Instance->DIER = TIM_DIER_CC1DE;
+  htim4.Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE;
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
 
@@ -661,12 +666,15 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA1_Stream7_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
 
 }
 
