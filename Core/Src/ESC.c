@@ -37,8 +37,8 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #include "ESC.h"
 
-//#define DSHOT150
-#define DSHOT300
+#define DSHOT150
+//#define DSHOT300
 //#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
@@ -78,17 +78,30 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #define DSHOT_MIN_THROTTLE	0
 #define DSHOT_MAX_THROTTLE 	2047
+#define DSHOT_PACKET_SIZE 	17
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
 
 #define __DSHOT_CONSUME_BIT(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
-ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
+void ESC_CPLT_CALLBACK(DMA_HandleTypeDef* dma)
 {
-	dmaTimerTick->Instance->ARR = TIMER_ARR - 1;
-	pwmTimer->Instance->ARR = TIMER_ARR - 1;
-	HAL_TIM_PWM_Start(dmaTimerTick, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(dmaTimerTick, TIM_CHANNEL_2);
+	int a = 0;
+	int b = 1;
+}
+
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
+{
+	dmaTickTimers[0].Instance->ARR = TIMER_ARR - 1; // htim4 ARR, synchronize timer that control DMA requests
+	dmaTickTimers[1].Instance->ARR = TIMER_ARR - 1; // htim5 ARR, synchronize timer that control DMA requests
+	pwmTimer->Instance->ARR = TIMER_ARR - 1;		// htim3 ARR, synchronize timer that control DMA requests
+	// Enable DMA requests on CH1 and CH2
+	dmaTickTimers[0].Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE | TIM_DIER_CC3DE;
+	dmaTickTimers[1].Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE;
+	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&dmaTickTimers[1], TIM_CHANNEL_2);
 	int bytes = sizeof(ESC_CONTROLLER) * ESC_COUNT;
 	ESC_CONTROLLER* ESC_CONTROLLER = malloc(bytes);
 	for (int i = 0; i < ESC_COUNT; i++)
@@ -97,17 +110,21 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwm
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
 		ESC_CONTROLLER[i].Timer = pwmTimer;
-		ESC_CONTROLLER[i].DMA = &dma[i%2];
+		ESC_CONTROLLER[i].DMA = &dma[i];
  		ESC_CONTROLLER[i].CCR = &(pwmTimer->Instance->CCR1) + i;
 		*ESC_CONTROLLER[i].CCR = 0;
+		ESC_UPDATE_THROTTLE(&ESC_CONTROLLER[i], 0, 1);
 		HAL_TIM_PWM_Start(pwmTimer, ESC_CONTROLLER[i].Channel);
+		HAL_DMA_RegisterCallback(ESC_CONTROLLER[i].DMA, HAL_DMA_XFER_CPLT_CB_ID, &ESC_CPLT_CALLBACK);
+		HAL_DMA_Start_IT(ESC_CONTROLLER[i].DMA, (uint32_t) &ESC_CONTROLLER[i].ThrottleDshot,
+						(uint32_t) ESC_CONTROLLER[i].CCR, DSHOT_PACKET_SIZE);
 	}
 	return ESC_CONTROLLER;
 }
 
-uint16_t makeDshotPacketBytes(uint32_t value)
+uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 {
-	uint16_t packet = (value << 1) | 1;
+	uint16_t packet = (value << 1) | telemBit;
 	int csum = 0;
 	int csumData = value;
 	for (int i = 0; i < 3; i++)
@@ -120,12 +137,12 @@ uint16_t makeDshotPacketBytes(uint32_t value)
 	return packet;
 }
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemBit)
 {
 	// Throttle cannot exceed 11 bits, so max value is 2047
 	if (throttle > DSHOT_MAX_THROTTLE) throttle = DSHOT_MAX_THROTTLE;
 	else if (throttle < DSHOT_MIN_THROTTLE) throttle = DSHOT_MIN_THROTTLE;
- 	uint16_t dshotBytes = makeDshotPacketBytes(throttle);
+ 	uint16_t dshotBytes = makeDshotPacketBytes(throttle, telemBit);
 	// 17th bit is to set CCR to 0 to keep it low between packets
 	uint32_t dshotPacket[17] = {0};
 	dshotPacket[16] = 0;
@@ -135,15 +152,10 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotBytes);
 		dshotBytes >>= 1;
 	}
-	// Setup the DMA stream to send the dshotPacket bytes to the CCR
-	// Clear transfer and half transfer complete flags
-	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4 |
-									DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7 | DMA_FLAG_FEIF3_7));
-	ESC->DMA->Instance->NDTR = 17;
-	ESC->DMA->Instance->M0AR = (uint32_t) dshotPacket;
-	ESC->DMA->Instance->PAR = (uint32_t) ESC->CCR;
-	__HAL_DMA_ENABLE(ESC->DMA);
-	while(ESC->DMA->Instance->CR & 0x1);
+	memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+	memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+	memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+	memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
 }
 
 void ESC_CMD_SEND(ESC_CONTROLLER* ESC, uint32_t cmd)
@@ -192,33 +204,39 @@ void ESC_STOP(ESC_CONTROLLER* ESC)
 
 #if defined(MULTISHOT) || defined(ONESHOT)
 
-ESC_CONTROLLER* ESC_INIT_CONTROLLER(TIM_HandleTypeDef* timer, DMA_HandleTypeDef* dma)
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
 {
-	timer->Instance->ARR = TIMER_ARR - 1;
-	ESC_CONTROLLER* ESC_CONTROLLER = malloc(sizeof(ESC_CONTROLLER) * ESC_COUNT);
+	dmaTimerTick->Instance->ARR = TIMER_ARR - 1;
+	pwmTimer->Instance->ARR = TIMER_ARR - 1;
+	HAL_TIM_PWM_Start(dmaTimerTick, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(dmaTimerTick, TIM_CHANNEL_2);
+	int bytes = sizeof(ESC_CONTROLLER) * ESC_COUNT;
+	ESC_CONTROLLER* ESC_CONTROLLER = malloc(bytes);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
 		ESC_CONTROLLER[i].Throttle = 0;
 		ESC_CONTROLLER[i].Channel = 4*i;
 		ESC_CONTROLLER[i].Number = i;
-		ESC_CONTROLLER[i].Timer = timer;
-		ESC_CONTROLLER[i].DMA = dma;
-		ESC_CONTROLLER[i].CCR = (uint32_t) &(timer->Instance->CCR1) + (4*i);
-		*((uint32_t *) ESC_CONTROLLER[i].CCR) = 0;
-		HAL_TIM_PWM_Start(timer, ESC_CONTROLLER[i].Channel);
+		ESC_CONTROLLER[i].Timer = pwmTimer;
+		ESC_CONTROLLER[i].DMA = &dma[i%2];
+ 		ESC_CONTROLLER[i].CCR = &(pwmTimer->Instance->CCR1) + i;
+		*ESC_CONTROLLER[i].CCR = 0;
+		HAL_TIM_PWM_Start(pwmTimer, ESC_CONTROLLER[i].Channel);
 	}
 	return ESC_CONTROLLER;
 }
 
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
 {
-	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4));
+	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4 |
+									DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7 | DMA_FLAG_FEIF3_7));
 	ESC->DMA->Instance->NDTR = 1;
-	ESC->DMA->Instance->M0AR = (uint32_t) &throttle;
-	ESC->DMA->Instance->PAR = ESC->CCR;
+	ESC->DMA->Instance->M0AR = &throttle;
+	ESC->DMA->Instance->PAR = (uint32_t) ESC->CCR;
 	__HAL_DMA_ENABLE(ESC->DMA);
 	while(ESC->DMA->Instance->CR & 0x1);
- }
+}
+
 #endif
 
 

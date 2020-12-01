@@ -57,21 +57,21 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 DMA_HandleTypeDef hdma_tim4_ch1;
 DMA_HandleTypeDef hdma_tim4_ch2;
+DMA_HandleTypeDef hdma_tim4_ch3;
+DMA_HandleTypeDef hdma_tim5_ch2;
 
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-uint32_t throttlePot;
 int throttle = 0;
+uint8_t telemBit = 1;
 XLG_DATA gData;
 XLG_DATA xlData;
-uint8_t writeByte = 0b11111111;
-uint8_t checksum = 0b1111;
-uint32_t telemetry = 0b1;
-uint8_t motorNum = 0;
-DMA_HandleTypeDef escDMASet[2];
+DMA_HandleTypeDef escDMASet[4];
+TIM_HandleTypeDef dmaPwmTimers[2];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -86,6 +86,7 @@ static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -108,7 +109,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
++  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -132,31 +133,48 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM2_Init();
   MX_TIM1_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  ADC_INIT(&hadc1, &throttlePot);
-  XLG_INIT(&hi2c1);
-  escDMASet[0] = hdma_tim4_ch1;
-  escDMASet[1] = hdma_tim4_ch2;
-  ESC_CONTROLLER* myESCSet = ESC_INIT(&htim4, &htim3, escDMASet);
+  escDMASet[0] = hdma_tim4_ch1; 		// DMA1: Stream 0 (S0)
+  escDMASet[1] = hdma_tim4_ch2; 		// DMA1: Stream 3 (S3)
+  escDMASet[2] = hdma_tim4_ch3; 		// DMA1: Stream 7 (S7)
+  escDMASet[3] = hdma_tim5_ch2; 		// DMA1: Stream 4 (S4)
+  dmaPwmTimers[0] = htim4;
+  dmaPwmTimers[1] = htim5;
+  ESC_CONTROLLER* myESCSet = ESC_INIT(dmaPwmTimers, &htim3, escDMASet);
   RX_CONTROLLER* myRX = RX_INIT(&htim1, &htim2);
+  XLG_INIT(&hi2c1);
 
-
-  const int patternSize = 5;
-  int startTime = HAL_GetTick();
-  const int period = 1000;
-  uint32_t pattern[patternSize];
-  pattern[0] = DSHOT_CMD_LED0_ON;
-  pattern[1] = DSHOT_CMD_LED0_OFF;
-  pattern[2] = DSHOT_CMD_LED1_ON;
-  pattern[3] = DSHOT_CMD_LED1_OFF;
-  pattern[4] = DSHOT_CMD_LED2_ON;
-  pattern[5] = DSHOT_CMD_LED2_OFF;
-  pattern[6] = DSHOT_CMD_LED3_ON;
-  pattern[7] = DSHOT_CMD_LED3_OFF;
-
-
-  uint32_t testThrottle = 0;
-  int prevTimeSlot = -1;
+  	const int patternSize = 26;
+	int startTime = HAL_GetTick();
+	const int period = 1;
+	uint32_t pattern[patternSize];
+	pattern[0] = DSHOT_CMD_MOTOR_STOP;
+	pattern[1] = DSHOT_CMD_BEACON1;
+	pattern[2] = DSHOT_CMD_BEACON2;
+	pattern[3] = DSHOT_CMD_BEACON3;
+	pattern[4] = DSHOT_CMD_BEACON4;
+	pattern[5] = DSHOT_CMD_BEACON5;
+	pattern[6] = DSHOT_CMD_ESC_INFO;
+	pattern[7] = DSHOT_CMD_SPIN_DIRECTION_1;
+	pattern[8] = DSHOT_CMD_SPIN_DIRECTION_2;
+	pattern[9] = DSHOT_CMD_3D_MODE_OFF;
+	pattern[10] = DSHOT_CMD_3D_MODE_ON;
+	pattern[11] = DSHOT_CMD_SETTINGS_REQUEST;
+	pattern[12] = DSHOT_CMD_SPIN_DIRECTION_REVERSED;
+	pattern[13] = DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+	pattern[14] = DSHOT_CMD_SPIN_DIRECTION_REVERSED;
+	pattern[15] = DSHOT_CMD_LED0_ON;
+	pattern[16] = DSHOT_CMD_LED1_ON;
+	pattern[17] = DSHOT_CMD_LED2_ON;
+	pattern[18] = DSHOT_CMD_LED3_ON;
+	pattern[19] = DSHOT_CMD_LED0_OFF;
+	pattern[20] = DSHOT_CMD_LED1_OFF;
+	pattern[21] = DSHOT_CMD_LED2_OFF;
+	pattern[22] = DSHOT_CMD_LED3_OFF;
+	pattern[23] = DSHOT_CMD_AUDIO_STREAM_MODE_ON_OFF;
+	pattern[24] = DSHOT_CMD_SILENT_MODE_ON_OFF;
+	pattern[25] = DSHOT_CMD_MAX;
 
 //  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
   /* USER CODE END 2 */
@@ -165,53 +183,52 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  int currentTime = HAL_GetTick();
-//	  int currentTimeSlot = (currentTime - startTime) / period;
-//
-//	  if (currentTimeSlot != prevTimeSlot)
-//	  {
-//		  prevTimeSlot = currentTimeSlot;
-//		  ++testThrottle;
-//	  }
+
+	  uint32_t testThrottle = 0;
+	  int prevTimeSlot = -1;
+
+		  int currentTime = HAL_GetTick();
+	  int currentTimeSlot = (currentTime - startTime) / period;
+
+	  if (currentTimeSlot != prevTimeSlot)
+	  {
+		  prevTimeSlot = currentTimeSlot;
+		  ++testThrottle;
+	  }
 
 	  int patternIndex = ((currentTime - startTime) / period) % patternSize;
-	  uint32_t testThrottle = pattern[patternIndex];
-
-	  if (testThrottle > 2047)
+	  testThrottle = pattern[patternIndex];
+	  RX_UPDATE(myRX);
+	  if (myRX->switchA > 900)
 	  {
-		  testThrottle = 0;
+		  if (myRX->switchB > 900) telemBit = 0;
+		  else telemBit = 1;
+		  throttle = (myRX->throttle - 998) * 2.045 ;
+		  if (throttle < 30) throttle = 0;
+		  if (throttle > 1990) throttle = 2047;
+		  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle, telemBit);
 	  }
-	  ESC_UPDATE_THROTTLE(&myESCSet[2], testThrottle);
-	  for (int i = 0; i < 10; i++) ESC_UPDATE_THROTTLE(&myESCSet[2], DSHOT_CMD_SAVE_SETTINGS);
-//	  RX_UPDATE(myRX);
+	  else
+	  {
+		  if (myRX->switchB > 900) telemBit = 0;
+		  else telemBit = 1;
+		  for (int i = 0; i < 6; i++){
+			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_MOTOR_STOP, telemBit);
+		  }
+		  for (int i = 0; i < 6; i++){
+			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_LED0_OFF, telemBit);
+		  }
+		  for (int i = 0; i < 6; i++){
+			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_SAVE_SETTINGS, telemBit);
+		  }
+		  for (int i = 0; i < 6; i++){
+			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_MOTOR_STOP, telemBit);
+		  }
+	  }
+	  //ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_SAVE_SETTINGS, telemBit);
+
 //	  XLG_G_DATA_READ(&hi2c1, &gData);
 //	  XLG_XL_DATA_READ(&hi2c1, &xlData);
-//	  if (xlData.dataReady)
-//	  {
-//		  uint8_t buf[48];
-//		  sprintf((char*)buf, "%i %i %i %i %i %i\r\n", xlData.x, xlData.y, xlData.z,
-//		  	  	  	  	  	  	  	  	  	  	  	   gData.x, gData.y, gData.z);
-//		  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  }
-//	  uint8_t buf[48];
-//	  sprintf((char*)buf, "%lu %lu %lu %lu %lu %lu\r\n", myRX->throttle, myRX->pitch, myRX->roll,
-//			  	  	  	  	  	  	  	  	  	   myRX->yaw, myRX->switchA, myRX->switchB);
-//	  HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
-//	  if (myRX->switchA > 600)
-//	  {
-//		  throttle = (myRX->throttle - 998) * 2.045 ;
-//		  if (throttle < 30) throttle = 0;
-//		  if (throttle > 1990) throttle = 2047;
-//		  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle);
-//		  ESC_UPDATE_THROTTLE(&myESCSet[1], throttle);
-//		  ESC_UPDATE_THROTTLE(&myESCSet[2], testThrottle);
-//		  ESC_UPDATE_THROTTLE(&myESCSet[3], throttle);
-//	  }
-//	  else
-//	  {
-//		 //
-//		 ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
-//	  }
 
     /* USER CODE END WHILE */
 
@@ -476,7 +493,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 215;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 19999;
+  htim2.Init.Period = 9999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -624,15 +641,63 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM4_Init 2 */
-  // Set DMA Transfers to 17 with DBL and destination to CCR1 (15) with DBA
-  htim4.Instance->DCR =  TIM_DCR_DBA_1 | TIM_DCR_DBA_2 | TIM_DCR_DBA_3; // Transfer at CCR2, 1 transfer
-  // Enable Update DMA Request
-  //htim4.Instance->DIER = TIM_DIER_UDE;
-  // Enable DMA requests on CH1
-  htim4.Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE;
+
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 0;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 359;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_OC_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_ACTIVE;
+  sConfigOC.Pulse = 1;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+  HAL_TIM_MspPostInit(&htim5);
 
 }
 
@@ -708,12 +773,18 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
   /* DMA1_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA1_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
 }
 
@@ -760,6 +831,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PG2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PG6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;

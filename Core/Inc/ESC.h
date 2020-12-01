@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "main.h"
 
 ///* Known ESC Commands */
@@ -65,6 +66,7 @@ typedef enum {
 typedef struct ESC
 {
 	uint32_t Throttle;
+	uint32_t ThrottleDshot[17];
 	uint32_t Channel;
 	uint32_t Number;
 	TIM_HandleTypeDef* Timer;
@@ -78,13 +80,13 @@ typedef struct ESC
  * Return: Pointer to the beginning of an array populated with ESC structs.
  */
 
-ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTimerTick, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma);
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma);
 
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemBit);
 void ESC_CMD_SEND(ESC_CONTROLLER* ESC, uint32_t cmd);
 void ESC_SETTING(ESC_CONTROLLER* ESC, uint32_t setting);
 void ESC_STOP(ESC_CONTROLLER* ESC);

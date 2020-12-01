@@ -1,6 +1,7 @@
-ESC.c:86:17:ESC_INIT	40	static
-ESC.c:108:10:makeDshotPacketBytes	32	static
-ESC.c:123:6:ESC_UPDATE_THROTTLE	96	static
-ESC.c:149:6:ESC_CMD_SEND	96	static
-ESC.c:172:6:ESC_SETTING	24	static
-ESC.c:184:6:ESC_STOP	24	static
+ESC.c:87:6:ESC_CPLT_CALLBACK	24	static
+ESC.c:93:17:ESC_INIT	40	static
+ESC.c:125:10:makeDshotPacketBytes	32	static
+ESC.c:140:6:ESC_UPDATE_THROTTLE	104	static
+ESC.c:161:6:ESC_CMD_SEND	96	static
+ESC.c:184:6:ESC_SETTING	24	static
+ESC.c:196:6:ESC_STOP	24	static
