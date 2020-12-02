@@ -76,57 +76,66 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 #define TIMER_ARR 		4500 // Auto Reload Register
 #endif
 
-#define DSHOT_MIN_THROTTLE	0
+#define DSHOT_MIN_THROTTLE	32
 #define DSHOT_MAX_THROTTLE 	2047
-#define DSHOT_PACKET_SIZE 	17
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
 
 #define __DSHOT_CONSUME_BIT(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
-void ESC_CPLT_CALLBACK(DMA_HandleTypeDef* dma)
+void ESC_CPLT_CALLBACK(ESC_CONTROLLER* thisEsc)
 {
-	int a = 0;
-	int b = 1;
+
 }
 
-ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma)
+void ESC_HALF_CALLBACK(ESC_CONTROLLER* thisEsc)
 {
-	dmaTickTimers[0].Instance->ARR = TIMER_ARR - 1; // htim4 ARR, synchronize timer that control DMA requests
-	dmaTickTimers[1].Instance->ARR = TIMER_ARR - 1; // htim5 ARR, synchronize timer that control DMA requests
-	pwmTimer->Instance->ARR = TIMER_ARR - 1;		// htim3 ARR, synchronize timer that control DMA requests
+
+}
+
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef** dmaHandlers)
+{
+	dmaTickTimers[0]->Instance->ARR = TIMER_ARR - 1; 	// htim4 ARR, synchronize timer that control DMA requests
+	dmaTickTimers[1]->Instance->ARR = TIMER_ARR - 1; 	// htim5 ARR, synchronize timer that control DMA requests
+	pwmTimer->Instance->ARR = TIMER_ARR - 1;		 		// htim3 ARR, synchronize timer that control DMA requests
 	// Enable DMA requests on CH1 and CH2
-	dmaTickTimers[0].Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE | TIM_DIER_CC3DE;
-	dmaTickTimers[1].Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE;
-	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&dmaTickTimers[0], TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&dmaTickTimers[1], TIM_CHANNEL_2);
-	int bytes = sizeof(ESC_CONTROLLER) * ESC_COUNT;
-	ESC_CONTROLLER* ESC_CONTROLLER = malloc(bytes);
+	dmaTickTimers[0]->Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE | TIM_DIER_CC3DE;
+	dmaTickTimers[1]->Instance->DIER = TIM_DIER_CC1DE | TIM_DIER_CC2DE;
+	HAL_TIM_PWM_Start(dmaTickTimers[0], TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(dmaTickTimers[0], TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(dmaTickTimers[0], TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(dmaTickTimers[1], TIM_CHANNEL_2);
+	int bytes = sizeof(ESC_CONTROLLER)*ESC_COUNT;
+	ESC_CONTROLLER* escSet = malloc(bytes);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
-		ESC_CONTROLLER[i].Throttle = 0;
-		ESC_CONTROLLER[i].Channel = 4*i;
-		ESC_CONTROLLER[i].Number = i;
-		ESC_CONTROLLER[i].Timer = pwmTimer;
-		ESC_CONTROLLER[i].DMA = &dma[i];
- 		ESC_CONTROLLER[i].CCR = &(pwmTimer->Instance->CCR1) + i;
-		*ESC_CONTROLLER[i].CCR = 0;
-		ESC_UPDATE_THROTTLE(&ESC_CONTROLLER[i], 0, 1);
-		HAL_TIM_PWM_Start(pwmTimer, ESC_CONTROLLER[i].Channel);
-		HAL_DMA_RegisterCallback(ESC_CONTROLLER[i].DMA, HAL_DMA_XFER_CPLT_CB_ID, &ESC_CPLT_CALLBACK);
-		HAL_DMA_Start_IT(ESC_CONTROLLER[i].DMA, (uint32_t) &ESC_CONTROLLER[i].ThrottleDshot,
-						(uint32_t) ESC_CONTROLLER[i].CCR, DSHOT_PACKET_SIZE);
+		escSet[i].Throttle = 0;
+		for (int j = 0; j < DSHOT_PACKET_SIZE; j++) escSet[i].ThrottleDshot[j] = 0;
+		escSet[i].Channel = 4*i;
+		escSet[i].Number = i;
+		escSet[i].Timer = pwmTimer;
+		escSet[i].DMA = dmaHandlers[i];
+ 		escSet[i].CCR = &(pwmTimer->Instance->CCR1) + i;
+		*escSet[i].CCR = 0;
+		void (*cpltCallback) = &ESC_CPLT_CALLBACK;
+		void (*halfCallback) = &ESC_HALF_CALLBACK;
+		HAL_DMA_RegisterCallback(escSet[i].DMA, HAL_DMA_XFER_CPLT_CB_ID, cpltCallback);
+		HAL_DMA_RegisterCallback(escSet[i].DMA, HAL_DMA_XFER_HALFCPLT_CB_ID, halfCallback);
 	}
-	return ESC_CONTROLLER;
+	for (int i = 0; i < ESC_COUNT; i++)
+	{
+		HAL_TIM_PWM_Start(pwmTimer, escSet[i].Channel);
+		HAL_DMA_Start_IT(escSet[i].DMA, (uint32_t) &escSet[i].ThrottleDshot,
+								(uint32_t) escSet[i].CCR, DSHOT_PACKET_SIZE);
+	}
+	return escSet;
 }
 
 uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 {
 	uint16_t packet = (value << 1) | telemBit;
 	int csum = 0;
-	int csumData = value;
+	int csumData = packet;
 	for (int i = 0; i < 3; i++)
 	{
 		csum ^= csumData; // xor data by nibbles
@@ -137,69 +146,47 @@ uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 	return packet;
 }
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemBit)
+void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit)
 {
-	// Throttle cannot exceed 11 bits, so max value is 2047
-	if (throttle > DSHOT_MAX_THROTTLE) throttle = DSHOT_MAX_THROTTLE;
-	else if (throttle < DSHOT_MIN_THROTTLE) throttle = DSHOT_MIN_THROTTLE;
- 	uint16_t dshotBytes = makeDshotPacketBytes(throttle, telemBit);
+	uint16_t dshotBytes = makeDshotPacketBytes(data, telemBit);
 	// 17th bit is to set CCR to 0 to keep it low between packets
-	uint32_t dshotPacket[17] = {0};
-	dshotPacket[16] = 0;
+	uint32_t dshotPacket[DSHOT_PACKET_SIZE] = {0};
 	// Populate checksum bits
 	for (int i = 15; i >= 0; i--)
 	{
 		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotBytes);
 		dshotBytes >>= 1;
 	}
-	memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-	memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-	memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-	memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-}
-
-void ESC_CMD_SEND(ESC_CONTROLLER* ESC, uint32_t cmd)
-{
-	// 17th bit is to set CCR to 0 to keep it low between packets
-	uint32_t dshotPacket[17] = {0};
-	uint16_t dshotCMD = 0xffff;
-	dshotCMD &= cmd;
-	// Populate checksum bits
-	for (int i = 15; i >= 0; i--)
-	{
-		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotCMD);
-		dshotCMD = dshotCMD >> 1;
-	}
-	// Setup the DMA stream to send the dshotPacket bytes to the CCR
-	// Clear transfer and half transfer complete flags
-	__HAL_DMA_CLEAR_FLAG(ESC->DMA, (DMA_FLAG_TCIF0_4 | DMA_FLAG_HTIF0_4 | DMA_FLAG_FEIF0_4 |
-									DMA_FLAG_TCIF3_7 | DMA_FLAG_HTIF3_7 | DMA_FLAG_FEIF3_7));
-	ESC->DMA->Instance->NDTR = 17;
-	ESC->DMA->Instance->M0AR = (uint32_t) dshotPacket;
-	ESC->DMA->Instance->PAR = (uint32_t) ESC->CCR;
-	__HAL_DMA_ENABLE(ESC->DMA);
-	while(ESC->DMA->Instance->CR & 0x1);
-}
-
-void ESC_SETTING(ESC_CONTROLLER* ESC, uint32_t setting)
-{
-	for (int i = 0; i < 10; i++)
-	{
-		ESC_CMD_SEND(ESC, setting);
-	}
-	for (int i = 0; i < 10; i++)
-	{
-		ESC_CMD_SEND(ESC, DSHOT_CMD_SAVE_SETTINGS);
-	}
-}
-
-void ESC_STOP(ESC_CONTROLLER* ESC)
-{
 	for (int i = 0; i < 4; i++)
 	{
-		ESC_CMD_SEND(&ESC[i], DSHOT_CMD_MOTOR_STOP);
+		memcpy(ESC[i].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
 	}
 }
+
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
+{
+	// Throttle cannot exceed 11 bits, so max value is 2047
+	if (throttle > DSHOT_MAX_THROTTLE) throttle = DSHOT_MAX_THROTTLE;
+	else if (throttle < DSHOT_MIN_THROTTLE) throttle = DSHOT_MIN_THROTTLE;
+	DSHOT_SEND_PACKET(ESC, throttle, 0);
+}
+
+void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd)
+{
+	// Need to set telemetry bit to 1 if either of these commands are sent
+	if (cmd == 	DSHOT_CMD_SPIN_DIRECTION_NORMAL || DSHOT_CMD_SPIN_DIRECTION_REVERSED ||
+				DSHOT_CMD_3D_MODE_ON || DSHOT_CMD_3D_MODE_OFF ||
+				DSHOT_CMD_SPIN_DIRECTION_1 || DSHOT_CMD_SPIN_DIRECTION_2)
+	{
+		for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC, cmd, 1);
+	}
+	else
+	{
+		DSHOT_SEND_PACKET(ESC, cmd, 0);
+	}
+	for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC, DSHOT_CMD_SAVE_SETTINGS, 1);
+}
+
 #endif
 
 #if defined(MULTISHOT) || defined(ONESHOT)

@@ -56,17 +56,20 @@ typedef enum {
     DSHOT_CMD_LED3_OFF, // BLHeli32 only
     DSHOT_CMD_AUDIO_STREAM_MODE_ON_OFF = 30, // KISS audio Stream mode on/Off
     DSHOT_CMD_SILENT_MODE_ON_OFF = 31, // KISS silent Mode on/Off
+	DSHOT_CMD_SIGNAL_LINE_TELEMETRY_DISABLE = 32,
+	DSHOT_CMD_SIGNAL_LINE_CONTINUOUS_ERPM_TELEMETRY = 33,
     DSHOT_CMD_MAX = 47
 } dshotCommands_e;
 
 #define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
 #define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))
 #define DSHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = (ADC_VALUE - 1600))
+#define DSHOT_PACKET_SIZE 	32
 
 typedef struct ESC
 {
 	uint32_t Throttle;
-	uint32_t ThrottleDshot[17];
+	uint32_t ThrottleDshot[DSHOT_PACKET_SIZE];
 	uint32_t Channel;
 	uint32_t Number;
 	TIM_HandleTypeDef* Timer;
@@ -80,15 +83,13 @@ typedef struct ESC
  * Return: Pointer to the beginning of an array populated with ESC structs.
  */
 
-ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef* dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef* dma);
+ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef** dma);
 
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint8_t telemBit);
-void ESC_CMD_SEND(ESC_CONTROLLER* ESC, uint32_t cmd);
-void ESC_SETTING(ESC_CONTROLLER* ESC, uint32_t setting);
-void ESC_STOP(ESC_CONTROLLER* ESC);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
+void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd);
 
 #endif /* INC_ESC_H_ */

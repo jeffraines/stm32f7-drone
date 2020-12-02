@@ -31,7 +31,9 @@ RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerS
 // TO DO: Convert the values before putting them RX_CONTROLLER. Probably best to load into local array then copy into RX_CONTROLLER
 void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER)
 {
-	RX_CONTROLLER->throttle = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1);
+	uint32_t curThrottle = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_1);
+	curThrottle = (curThrottle - 998) * 2.045;
+	RX_CONTROLLER->throttle = curThrottle;
 	RX_CONTROLLER->pitch = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_2);
 	RX_CONTROLLER->roll = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_3);
 	RX_CONTROLLER->yaw = HAL_TIM_ReadCapturedValue(RX_CONTROLLER->timerSticks, TIM_CHANNEL_4);

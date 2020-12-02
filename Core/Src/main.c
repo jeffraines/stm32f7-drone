@@ -66,12 +66,16 @@ DMA_HandleTypeDef hdma_tim5_ch2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-int throttle = 0;
-uint8_t telemBit = 1;
+int cmd = 0;
+int motor = 0;
+uint8_t escCMD;
+uint8_t sendMsg[48];
 XLG_DATA gData;
 XLG_DATA xlData;
-DMA_HandleTypeDef escDMASet[4];
-TIM_HandleTypeDef dmaPwmTimers[2];
+DMA_HandleTypeDef* escDMASet[4];
+TIM_HandleTypeDef* dmaPwmTimers[2];
+ESC_CONTROLLER* myESCSet;
+RX_CONTROLLER* myRX;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,7 +97,13 @@ static void MX_TIM5_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
+{
+	cmd = escCMD - '0';
+	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
+	sprintf((char*)sendMsg, "\r\nSending command %c\r\n", escCMD);
+	HAL_UART_Transmit_IT(&huart3, sendMsg, strlen((char*)sendMsg));
+}
 /* USER CODE END 0 */
 
 /**
@@ -109,7 +119,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-+  HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -135,97 +145,63 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  escDMASet[0] = hdma_tim4_ch1; 		// DMA1: Stream 0 (S0)
-  escDMASet[1] = hdma_tim4_ch2; 		// DMA1: Stream 3 (S3)
-  escDMASet[2] = hdma_tim4_ch3; 		// DMA1: Stream 7 (S7)
-  escDMASet[3] = hdma_tim5_ch2; 		// DMA1: Stream 4 (S4)
-  dmaPwmTimers[0] = htim4;
-  dmaPwmTimers[1] = htim5;
-  ESC_CONTROLLER* myESCSet = ESC_INIT(dmaPwmTimers, &htim3, escDMASet);
-  RX_CONTROLLER* myRX = RX_INIT(&htim1, &htim2);
-  XLG_INIT(&hi2c1);
+	escDMASet[0] = &hdma_tim4_ch1; 		// DMA1: Stream 0 (S0)
+	escDMASet[1] = &hdma_tim4_ch2; 		// DMA1: Stream 3 (S3)
+	escDMASet[2] = &hdma_tim4_ch3; 		// DMA1: Stream 7 (S7)
+	escDMASet[3] = &hdma_tim5_ch2; 		// DMA1: Stream 4 (S4)
+	dmaPwmTimers[0] = &htim4;
+	dmaPwmTimers[1] = &htim5;
+	myESCSet = ESC_INIT(dmaPwmTimers, &htim3, escDMASet);
+	myRX = RX_INIT(&htim1, &htim2);
+	XLG_INIT(&hi2c1);
 
-  	const int patternSize = 26;
-	int startTime = HAL_GetTick();
-	const int period = 1;
+	const int patternSize = 26;
+	//int startTime = HAL_GetTick();
+	//const int period = 2000;
 	uint32_t pattern[patternSize];
 	pattern[0] = DSHOT_CMD_MOTOR_STOP;
-	pattern[1] = DSHOT_CMD_BEACON1;
-	pattern[2] = DSHOT_CMD_BEACON2;
-	pattern[3] = DSHOT_CMD_BEACON3;
-	pattern[4] = DSHOT_CMD_BEACON4;
-	pattern[5] = DSHOT_CMD_BEACON5;
-	pattern[6] = DSHOT_CMD_ESC_INFO;
-	pattern[7] = DSHOT_CMD_SPIN_DIRECTION_1;
-	pattern[8] = DSHOT_CMD_SPIN_DIRECTION_2;
-	pattern[9] = DSHOT_CMD_3D_MODE_OFF;
-	pattern[10] = DSHOT_CMD_3D_MODE_ON;
-	pattern[11] = DSHOT_CMD_SETTINGS_REQUEST;
-	pattern[12] = DSHOT_CMD_SPIN_DIRECTION_REVERSED;
-	pattern[13] = DSHOT_CMD_SPIN_DIRECTION_NORMAL;
-	pattern[14] = DSHOT_CMD_SPIN_DIRECTION_REVERSED;
-	pattern[15] = DSHOT_CMD_LED0_ON;
-	pattern[16] = DSHOT_CMD_LED1_ON;
-	pattern[17] = DSHOT_CMD_LED2_ON;
-	pattern[18] = DSHOT_CMD_LED3_ON;
-	pattern[19] = DSHOT_CMD_LED0_OFF;
-	pattern[20] = DSHOT_CMD_LED1_OFF;
-	pattern[21] = DSHOT_CMD_LED2_OFF;
-	pattern[22] = DSHOT_CMD_LED3_OFF;
-	pattern[23] = DSHOT_CMD_AUDIO_STREAM_MODE_ON_OFF;
-	pattern[24] = DSHOT_CMD_SILENT_MODE_ON_OFF;
-	pattern[25] = DSHOT_CMD_MAX;
+	pattern[1] = DSHOT_CMD_LED0_ON;
+	pattern[2] = DSHOT_CMD_LED0_OFF;
+	pattern[3] = DSHOT_CMD_LED1_ON;
+	pattern[4] = DSHOT_CMD_LED1_OFF;
+	pattern[5] = DSHOT_CMD_LED2_ON;
+	pattern[6] = DSHOT_CMD_LED2_OFF;
+	pattern[7] = DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+	pattern[8] = DSHOT_CMD_SPIN_DIRECTION_REVERSED;
+	pattern[9] = DSHOT_CMD_BEACON1;
 
-//  ESC_SETTING(&myESCSet[2], DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  uint32_t testThrottle = 0;
-	  int prevTimeSlot = -1;
-
-		  int currentTime = HAL_GetTick();
-	  int currentTimeSlot = (currentTime - startTime) / period;
-
-	  if (currentTimeSlot != prevTimeSlot)
-	  {
-		  prevTimeSlot = currentTimeSlot;
-		  ++testThrottle;
-	  }
-
-	  int patternIndex = ((currentTime - startTime) / period) % patternSize;
-	  testThrottle = pattern[patternIndex];
 	  RX_UPDATE(myRX);
-	  if (myRX->switchA > 900)
+	  if (myRX->switchA < 600)
 	  {
-		  if (myRX->switchB > 900) telemBit = 0;
-		  else telemBit = 1;
-		  throttle = (myRX->throttle - 998) * 2.045 ;
-		  if (throttle < 30) throttle = 0;
-		  if (throttle > 1990) throttle = 2047;
-		  ESC_UPDATE_THROTTLE(&myESCSet[0], throttle, telemBit);
+//		  int prevTimeSlot = -1;
+//
+//			  int currentTime = HAL_GetTick();
+//		  int currentTimeSlot = (currentTime - startTime) / period;
+//
+//		  if (currentTimeSlot != prevTimeSlot)
+//		  {
+//			  prevTimeSlot = currentTimeSlot;
+//			  ++testThrottle;
+//		  }
+
+//		  int patternIndex = ((currentTime - startTime) / period) % patternSize;
+//		  testThrottle = pattern[patternIndex];
+		  //sprintf((char*)sendMsg, "\r\nSending command %c", cmd);
+		  //HAL_UART_Transmit_IT(&huart3, sendMsg, strlen((char*)sendMsg));
+		  ESC_SEND_CMD(myESCSet, pattern[cmd]);
 	  }
 	  else
 	  {
-		  if (myRX->switchB > 900) telemBit = 0;
-		  else telemBit = 1;
-		  for (int i = 0; i < 6; i++){
-			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_MOTOR_STOP, telemBit);
-		  }
-		  for (int i = 0; i < 6; i++){
-			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_LED0_OFF, telemBit);
-		  }
-		  for (int i = 0; i < 6; i++){
-			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_SAVE_SETTINGS, telemBit);
-		  }
-		  for (int i = 0; i < 6; i++){
-			  ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_MOTOR_STOP, telemBit);
-		  }
+		  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
 	  }
-	  //ESC_UPDATE_THROTTLE(&myESCSet[0], DSHOT_CMD_SAVE_SETTINGS, telemBit);
+	  //ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
 
 //	  XLG_G_DATA_READ(&hi2c1, &gData);
 //	  XLG_XL_DATA_READ(&hi2c1, &xlData);
