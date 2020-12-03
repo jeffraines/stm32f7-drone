@@ -83,15 +83,15 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #define __DSHOT_CONSUME_BIT(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
-void ESC_CPLT_CALLBACK(ESC_CONTROLLER* thisEsc)
-{
-
-}
-
-void ESC_HALF_CALLBACK(ESC_CONTROLLER* thisEsc)
-{
-
-}
+//void ESC_CPLT_CALLBACK(ESC_CONTROLLER* ESC_SET)
+//{
+//
+//}
+//
+//void ESC_HALF_CALLBACK(ESC_CONTROLLER* ESC_SET)
+//{
+//
+//}
 
 ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef** dmaHandlers)
 {
@@ -106,29 +106,28 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 	HAL_TIM_PWM_Start(dmaTickTimers[0], TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(dmaTickTimers[1], TIM_CHANNEL_2);
 	int bytes = sizeof(ESC_CONTROLLER)*ESC_COUNT;
-	ESC_CONTROLLER* escSet = malloc(bytes);
+	ESC_CONTROLLER* ESC_SET = malloc(bytes);
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
-		escSet[i].Throttle = 0;
-		for (int j = 0; j < DSHOT_PACKET_SIZE; j++) escSet[i].ThrottleDshot[j] = 0;
-		escSet[i].Channel = 4*i;
-		escSet[i].Number = i;
-		escSet[i].Timer = pwmTimer;
-		escSet[i].DMA = dmaHandlers[i];
- 		escSet[i].CCR = &(pwmTimer->Instance->CCR1) + i;
-		*escSet[i].CCR = 0;
-		void (*cpltCallback) = &ESC_CPLT_CALLBACK;
-		void (*halfCallback) = &ESC_HALF_CALLBACK;
-		HAL_DMA_RegisterCallback(escSet[i].DMA, HAL_DMA_XFER_CPLT_CB_ID, cpltCallback);
-		HAL_DMA_RegisterCallback(escSet[i].DMA, HAL_DMA_XFER_HALFCPLT_CB_ID, halfCallback);
+		ESC_SET->Throttle[i] = 0;
+		for (int j = 0; j < DSHOT_PACKET_SIZE; j++) ESC_SET->ThrottleDshot[i][j] = 0;
+		ESC_SET->Channel[i] = 4*i;
+		ESC_SET->Timer[i] = pwmTimer;
+		ESC_SET->DMA[i] = dmaHandlers[i];
+ 		ESC_SET->CCR[i] = &(pwmTimer->Instance->CCR1) + i;
+		*ESC_SET->CCR[i] = 0;
+//		void (*cpltCallback) = &ESC_CPLT_CALLBACK;
+//		void (*halfCallback) = &ESC_HALF_CALLBACK;
+//		HAL_DMA_RegisterCallback(ESC_SET.DMA[i], HAL_DMA_XFER_CPLT_CB_ID, cpltCallback);
+//		HAL_DMA_RegisterCallback(ESC_SET.DMA[i], HAL_DMA_XFER_HALFCPLT_CB_ID, halfCallback);
 	}
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
-		HAL_TIM_PWM_Start(pwmTimer, escSet[i].Channel);
-		HAL_DMA_Start_IT(escSet[i].DMA, (uint32_t) &escSet[i].ThrottleDshot,
-								(uint32_t) escSet[i].CCR, DSHOT_PACKET_SIZE);
+		HAL_TIM_PWM_Start(pwmTimer, ESC_SET->Channel[i]);
+		HAL_DMA_Start_IT(ESC_SET->DMA[i], (uint32_t) &ESC_SET->ThrottleDshot[i],
+								(uint32_t) ESC_SET->CCR[i], DSHOT_PACKET_SIZE);
 	}
-	return escSet;
+	return ESC_SET;
 }
 
 uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
@@ -146,7 +145,7 @@ uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 	return packet;
 }
 
-void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit, uint32_t motorNum)
+void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC_SET, uint32_t data, uint32_t telemBit, uint32_t motorNum)
 {
 	uint16_t dshotBytes = makeDshotPacketBytes(data, telemBit);
 	// 17th bit is to set CCR to 0 to keep it low between packets
@@ -159,64 +158,64 @@ void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit, ui
 	}
 	switch(motorNum) {
 		case (FRONT_LEFT_MOTOR):
-			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[0], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (FRONT_RIGHT_MOTOR):
-			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[1], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (BACK_LEFT_MOTOR):
-			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[2], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (BACK_RIGHT_MOTOR):
-			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[3], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (LEFT_SIDE_MOTORS):
-			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[0], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[2], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (RIGHT_SIDE_MOTORS):
-			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[1], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[3], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (FRONT_SIDE_MOTORS):
-			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[0], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[1], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (BACK_SIDE_MOTORS):
-			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[2], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[3], dshotPacket, sizeof(dshotPacket));
 			break;
 		case (ALL_MOTORS):
-			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
-			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[0], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[1], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[2], dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC_SET->ThrottleDshot[3], dshotPacket, sizeof(dshotPacket));
 			break;
 	}
 }
 
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle)
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC_SET, uint32_t throttle, uint32_t motorNum)
 {
 	// Throttle cannot exceed 11 bits, so max value is 2047
 	if (throttle > DSHOT_MAX_THROTTLE) throttle = DSHOT_MAX_THROTTLE;
 	else if (throttle < DSHOT_MIN_THROTTLE) throttle = DSHOT_MIN_THROTTLE;
-	DSHOT_SEND_PACKET(ESC, throttle, 0);
+	DSHOT_SEND_PACKET(ESC_SET, throttle, 0, motorNum);
 }
 
-void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd)
+void ESC_SEND_CMD(ESC_CONTROLLER* ESC_SET, uint32_t cmd, uint32_t motorNum)
 {
 	// Need to set telemetry bit to 1 if either of these commands are sent
 	if (cmd == 	DSHOT_CMD_SPIN_DIRECTION_NORMAL || DSHOT_CMD_SPIN_DIRECTION_REVERSED ||
 				DSHOT_CMD_3D_MODE_ON || DSHOT_CMD_3D_MODE_OFF ||
 				DSHOT_CMD_SPIN_DIRECTION_1 || DSHOT_CMD_SPIN_DIRECTION_2)
 	{
-		for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC, cmd, 1);
+		for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC_SET, cmd, 1, motorNum);
 	}
 	else
 	{
-		DSHOT_SEND_PACKET(ESC, cmd, 0);
+		DSHOT_SEND_PACKET(ESC_SET, cmd, 0, motorNum);
 	}
-	for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC, DSHOT_CMD_SAVE_SETTINGS, 1);
+	for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(ESC_SET, DSHOT_CMD_SAVE_SETTINGS, 1, motorNum);
 }
 
 #endif

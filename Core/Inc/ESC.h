@@ -14,6 +14,7 @@
 #include "main.h"
 
 #define DSHOT_PACKET_SIZE 	32
+#define ESC_COUNT 4
 
 typedef enum {
     DSHOT_CMD_MOTOR_STOP = 0,
@@ -60,13 +61,12 @@ typedef enum {
 
 typedef struct ESC
 {
-	uint32_t Throttle;
-	uint32_t ThrottleDshot[DSHOT_PACKET_SIZE];
-	uint32_t Channel;
-	uint32_t Number;
-	TIM_HandleTypeDef* Timer;
-	DMA_HandleTypeDef* DMA;
-	volatile uint32_t* CCR;
+	uint32_t Throttle[ESC_COUNT];
+	uint32_t ThrottleDshot[ESC_COUNT][DSHOT_PACKET_SIZE];
+	uint32_t Channel[ESC_COUNT];
+	TIM_HandleTypeDef* Timer[ESC_COUNT];
+	DMA_HandleTypeDef* DMA[ESC_COUNT];
+	volatile uint32_t* CCR[ESC_COUNT];
 } ESC_CONTROLLER;
 
 /* Function Summary: Initiate the Electronic Speed Controller (ESC) for a particular timer and DMA streams.
@@ -79,8 +79,8 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
-void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint32_t motorNum);
+void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd, uint32_t motorNum);
 
 
 #define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))

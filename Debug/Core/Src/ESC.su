@@ -1,0 +1,5 @@
+ESC.c:96:17:ESC_INIT	48	static
+ESC.c:133:10:makeDshotPacketBytes	32	static
+ESC.c:148:6:DSHOT_SEND_PACKET	160	static
+ESC.c:197:6:ESC_UPDATE_THROTTLE	24	static
+ESC.c:205:6:ESC_SEND_CMD	32	static

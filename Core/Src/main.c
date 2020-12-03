@@ -68,7 +68,7 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 int cmd = 0;
 int motor = 0;
-int throttleHighFlag = 0;
+int throttleHighFlag = 1;
 uint8_t escCMD;
 uint8_t sendMsg[48];
 XLG_DATA gData;
@@ -98,6 +98,8 @@ static void MX_TIM5_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// Interrupt Routine for command line settings
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
 	cmd = escCMD - '0';
@@ -105,6 +107,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 	sprintf((char*)sendMsg, "\r\nSending command %c\r\n", escCMD);
 	HAL_UART_Transmit_IT(&huart3, sendMsg, strlen((char*)sendMsg));
 }
+
+// Interrupt routine for RX
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	RX_UPDATE(myRX);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -157,8 +166,6 @@ int main(void)
 	XLG_INIT(&hi2c1);
 
 	const int patternSize = 26;
-	//int startTime = HAL_GetTick();
-	//const int period = 2000;
 	uint32_t pattern[patternSize];
 	pattern[0] = DSHOT_CMD_MOTOR_STOP;
 	pattern[1] = DSHOT_CMD_LED0_ON;
@@ -178,19 +185,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  RX_UPDATE(myRX);
-	  if (myRX->switchA < 600)
+	  if (!myRX->switchA)
 	  {
-		  ESC_SEND_CMD(myESCSet, pattern[cmd]);
+		  ESC_SEND_CMD(myESCSet, pattern[cmd], ALL_MOTORS);
 		  throttleHighFlag = 0;
 	  }
-	  else if (myRX->throttle < 50 || flag)
+	  else if ((myRX->switchA && (myRX->throttle < 50)) || throttleHighFlag)
 	  {
-		  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
+		  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle, ALL_MOTORS);
 		  throttleHighFlag = 1;
 	  }
-	  //ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
-
 //	  XLG_G_DATA_READ(&hi2c1, &gData);
 //	  XLG_XL_DATA_READ(&hi2c1, &xlData);
 
