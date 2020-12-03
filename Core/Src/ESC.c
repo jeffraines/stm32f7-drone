@@ -146,7 +146,7 @@ uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 	return packet;
 }
 
-void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit)
+void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit, uint32_t motorNum)
 {
 	uint16_t dshotBytes = makeDshotPacketBytes(data, telemBit);
 	// 17th bit is to set CCR to 0 to keep it low between packets
@@ -157,9 +157,41 @@ void DSHOT_SEND_PACKET(ESC_CONTROLLER* ESC, uint32_t data, uint32_t telemBit)
 		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotBytes);
 		dshotBytes >>= 1;
 	}
-	for (int i = 0; i < 4; i++)
-	{
-		memcpy(ESC[i].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+	switch(motorNum) {
+		case (FRONT_LEFT_MOTOR):
+			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (FRONT_RIGHT_MOTOR):
+			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (BACK_LEFT_MOTOR):
+			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (BACK_RIGHT_MOTOR):
+			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (LEFT_SIDE_MOTORS):
+			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (RIGHT_SIDE_MOTORS):
+			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (FRONT_SIDE_MOTORS):
+			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (BACK_SIDE_MOTORS):
+			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
+		case (ALL_MOTORS):
+			memcpy(ESC[0].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[1].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[2].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			memcpy(ESC[3].ThrottleDshot, dshotPacket, sizeof(dshotPacket));
+			break;
 	}
 }
 

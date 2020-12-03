@@ -68,6 +68,7 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 int cmd = 0;
 int motor = 0;
+int throttleHighFlag = 0;
 uint8_t escCMD;
 uint8_t sendMsg[48];
 XLG_DATA gData;
@@ -180,26 +181,13 @@ int main(void)
 	  RX_UPDATE(myRX);
 	  if (myRX->switchA < 600)
 	  {
-//		  int prevTimeSlot = -1;
-//
-//			  int currentTime = HAL_GetTick();
-//		  int currentTimeSlot = (currentTime - startTime) / period;
-//
-//		  if (currentTimeSlot != prevTimeSlot)
-//		  {
-//			  prevTimeSlot = currentTimeSlot;
-//			  ++testThrottle;
-//		  }
-
-//		  int patternIndex = ((currentTime - startTime) / period) % patternSize;
-//		  testThrottle = pattern[patternIndex];
-		  //sprintf((char*)sendMsg, "\r\nSending command %c", cmd);
-		  //HAL_UART_Transmit_IT(&huart3, sendMsg, strlen((char*)sendMsg));
 		  ESC_SEND_CMD(myESCSet, pattern[cmd]);
+		  throttleHighFlag = 0;
 	  }
-	  else
+	  else if (myRX->throttle < 50 || flag)
 	  {
 		  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
+		  throttleHighFlag = 1;
 	  }
 	  //ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle);
 

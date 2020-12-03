@@ -13,23 +13,8 @@
 #include <string.h>
 #include "main.h"
 
-///* Known ESC Commands */
-//#define DSHOT_CMD_MOTOR_STOP 							 	 0 	// |0000000000000000|
-//#define DSHOT_CMD_SPIN_DIRECTION_NORMAL 					20	// |0000000000010100|
-//#define DSHOT_CMD_SPIN_DIRECTION_REVERSED 				 	21	// |0000000000010101|
-//#define DSHOT_CMD_AUDIO_STREAM_MODE_ON_OFF 					30 	// |0000000000011110|
-//#define DSHOT_CMD_SILENT_MODE_ON_OFF 					 	31	// |0000000000011111|
-//#define DSHOT_CMD_SIGNAL_LINE_TELEMETRY_DISABLE 		 	32	// |0000000000100000|
-//#define DSHOT_CMD_SIGNAL_LINE_CONTINUOUS_ERPM_TELEMETRY	 	33	// |0000000000100001|
-//#define DSHOT_CMD_MAX 									 	47	// |0000000000101111|
-//
-///* Unknown ESC Commands */
-//#define DSHOT_CMD_3D_MODE_OFF							 	16 	// |0000000000010000|
-//#define DSHOT_CMD_3D_MODE_ON							 	17	// |0000000000010001|
-//#define DSHOT_CMD_SETTINGS_REQUEST						 	18	// |0000000000010010|
-//#define DSHOT_CMD_SAVE_SETTINGS							 	19	// |0000000000010011|
+#define DSHOT_PACKET_SIZE 	32
 
-// TO DO
 typedef enum {
     DSHOT_CMD_MOTOR_STOP = 0,
     DSHOT_CMD_BEACON1,
@@ -61,10 +46,17 @@ typedef enum {
     DSHOT_CMD_MAX = 47
 } dshotCommands_e;
 
-#define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
-#define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))
-#define DSHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = (ADC_VALUE - 1600))
-#define DSHOT_PACKET_SIZE 	32
+typedef enum {
+	FRONT_LEFT_MOTOR = 0,
+	FRONT_RIGHT_MOTOR,
+	BACK_LEFT_MOTOR,
+	BACK_RIGHT_MOTOR,
+	LEFT_SIDE_MOTORS,
+	RIGHT_SIDE_MOTORS,
+	FRONT_SIDE_MOTORS,
+	BACK_SIDE_MOTORS,
+	ALL_MOTORS
+} motors;
 
 typedef struct ESC
 {
@@ -77,7 +69,6 @@ typedef struct ESC
 	volatile uint32_t* CCR;
 } ESC_CONTROLLER;
 
-
 /* Function Summary: Initiate the Electronic Speed Controller (ESC) for a particular timer and DMA streams.
  * Parameters: *timer - Pointer to predefined timer, *hdmaArray - Array containing set of DMA streams
  * Return: Pointer to the beginning of an array populated with ESC structs.
@@ -88,8 +79,12 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
-
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle);
 void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd);
+
+
+#define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
+#define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))
+#define DSHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = (ADC_VALUE - 1600))
 
 #endif /* INC_ESC_H_ */
