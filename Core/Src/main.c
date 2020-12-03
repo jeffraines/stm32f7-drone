@@ -69,6 +69,9 @@ UART_HandleTypeDef huart3;
 int cmd = 0;
 int motor = 0;
 int throttleHighFlag = 1;
+bool remoteConnected = false;
+int watchdogRemote = 0;
+uint8_t txDisconnected = 0;
 uint8_t escCMD;
 uint8_t sendMsg[48];
 XLG_DATA gData;
@@ -111,6 +114,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 // Interrupt routine for RX
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+	remoteConnected = true;
+	watchdogRemote = 0;
 	RX_UPDATE(myRX);
 }
 
@@ -179,21 +184,39 @@ int main(void)
 	pattern[9] = DSHOT_CMD_BEACON1;
 
 	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (!myRX->switchA)
+	  watchdogRemote = HAL_GetTick();
+	  if (watchdogRemote > 20000)
 	  {
-		  ESC_SEND_CMD(myESCSet, pattern[cmd], ALL_MOTORS);
-		  throttleHighFlag = 0;
+		  remoteConnected = false;
 	  }
-	  else if ((myRX->switchA && (myRX->throttle < 50)) || throttleHighFlag)
+	  else
 	  {
+		  remoteConnected = true;
+	  }
+	  if (remoteConnected)
+	  {
+		  if (!myRX->switchA)
+		  {
+			  ESC_SEND_CMD(myESCSet, pattern[cmd], ALL_MOTORS);
+			  throttleHighFlag = 0;
+		  }
+		  else if ((myRX->switchA && (myRX->throttle < 50)) || throttleHighFlag)
+		  {
+			  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle, ALL_MOTORS);
+			  throttleHighFlag = 1;
+		  }
+	  }
+	  else if (!remoteConnected)
+	  {
+		  RX_DISCONNECTED(myRX);
 		  ESC_UPDATE_THROTTLE(myESCSet, myRX->throttle, ALL_MOTORS);
-		  throttleHighFlag = 1;
 	  }
 //	  XLG_G_DATA_READ(&hi2c1, &gData);
 //	  XLG_XL_DATA_READ(&hi2c1, &xlData);

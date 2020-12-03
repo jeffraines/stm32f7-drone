@@ -59,3 +59,13 @@ void RX_UPDATE(RX_CONTROLLER* thisRX)
 	if (curSwitchB < RX_SWITCH_OFFSET) thisRX->switchB = 0;
 	else thisRX->switchB = 1;
 }
+
+void RX_DISCONNECTED(RX_CONTROLLER* thisRX)
+{
+	thisRX->throttle = 0;
+	thisRX->pitch = 0;
+	thisRX->roll = 0;
+	thisRX->yaw = 0;
+	thisRX->switchA = 0;
+	thisRX->switchB = 0;
+}

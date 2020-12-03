@@ -1,2 +1,3 @@
 RX.c:15:16:RX_INIT	24	static
 RX.c:35:6:RX_UPDATE	48	static
+RX.c:63:6:RX_DISCONNECTED	16	static

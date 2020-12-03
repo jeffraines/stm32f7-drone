@@ -28,5 +28,6 @@ typedef struct RX_CONTROLLER
 
 RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches);
 void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER);
+void RX_DISCONNECTED(RX_CONTROLLER* thisRX);
 
 #endif /* SRC_RX_H_ */
