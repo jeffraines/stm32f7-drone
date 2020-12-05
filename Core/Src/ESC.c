@@ -37,8 +37,8 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #include "ESC.h"
 
-#define DSHOT150
-//#define DSHOT300
+//#define DSHOT150
+#define DSHOT300
 //#define DSHOT600
 //#define DSHOT1200
 //#define MULTISHOT
