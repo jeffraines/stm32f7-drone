@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "main.h"
+#include "RX.h"
 
 #define DSHOT_PACKET_SIZE 	32
 #define ESC_COUNT 4
@@ -24,8 +25,8 @@ typedef enum {
     DSHOT_CMD_BEACON4,
     DSHOT_CMD_BEACON5,
     DSHOT_CMD_ESC_INFO, // V2 includes settings
-    DSHOT_CMD_SPIN_DIRECTION_1,
-    DSHOT_CMD_SPIN_DIRECTION_2,
+    DSHOT_CMD_SPIN_DIRECTION_1,	// Counter-Clockwise
+    DSHOT_CMD_SPIN_DIRECTION_2, // Clockwise
     DSHOT_CMD_3D_MODE_OFF,
     DSHOT_CMD_3D_MODE_ON,
     DSHOT_CMD_SETTINGS_REQUEST, // Currently not implemented
@@ -69,6 +70,14 @@ typedef struct ESC
 	volatile uint32_t* CCR[ESC_COUNT];
 } ESC_CONTROLLER;
 
+typedef struct
+{
+	uint32_t FrontLeft;
+	uint32_t FrontRight;
+	uint32_t BackLeft;
+	uint32_t BackRight;
+} MOTOR_THROTTLES;
+
 /* Function Summary: Initiate the Electronic Speed Controller (ESC) for a particular timer and DMA streams.
  * Parameters: *timer - Pointer to predefined timer, *hdmaArray - Array containing set of DMA streams
  * Return: Pointer to the beginning of an array populated with ESC structs.
@@ -79,8 +88,9 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 /* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
  * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
  */
-void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC, uint32_t throttle, uint32_t motorNum);
+void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC);
 void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd, uint32_t motorNum);
+void ESC_CALC_THROTTLE(ESC_CONTROLLER* escSet, RX_CONTROLLER* thisRX, uint8_t armed);
 
 
 #define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
