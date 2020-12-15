@@ -14,7 +14,7 @@
 #include "main.h"
 #include "RX.h"
 
-#define DSHOT_PACKET_SIZE 	32
+#define DSHOT_PACKET_SIZE 	24
 #define ESC_COUNT 4
 
 typedef enum {

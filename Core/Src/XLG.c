@@ -27,17 +27,20 @@ void XLG_INIT(I2C_HandleTypeDef* i2c)
 
 void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize)
 {
-	HAL_I2C_Mem_Write_DMA(i2c, XLG_I2C_ADDR, addr, XLG_REG_SIZE, writeByte, writeSize);
-	while(i2c->hdmatx->State != HAL_DMA_STATE_READY);
-	i2c->State = HAL_I2C_STATE_READY;
+	if (i2c->hdmatx->State == HAL_DMA_STATE_READY)
+	{
+		HAL_I2C_Mem_Write_DMA(i2c, XLG_I2C_ADDR, addr, XLG_REG_SIZE, writeByte, writeSize);
+		i2c->State = HAL_I2C_STATE_READY;
+	}
 }
 
 void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t readSize)
 {
-	HAL_I2C_Mem_Read_DMA(i2c, XLG_I2C_ADDR, addr, XLG_REG_SIZE, readByte, readSize);
-	HAL_I2C_Mem_Read(i2c, XLG_I2C_ADDR, addr, XLG_REG_SIZE, readByte, readSize, HAL_MAX_DELAY);
-	while(i2c->hdmarx->State != HAL_DMA_STATE_READY);
-	i2c->State = HAL_I2C_STATE_READY;
+	if (i2c->hdmarx->State == HAL_DMA_STATE_READY)
+	{
+		HAL_I2C_Mem_Read_DMA(i2c, XLG_I2C_ADDR, addr, XLG_REG_SIZE, readByte, readSize);
+		i2c->State = HAL_I2C_STATE_READY;
+	}
 }
 
 _Bool XLG_XL_DATA_READY(I2C_HandleTypeDef* i2c)

@@ -388,7 +388,7 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
     hdma_tim4_ch1.Init.MemInc = DMA_MINC_ENABLE;
     hdma_tim4_ch1.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
     hdma_tim4_ch1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-    hdma_tim4_ch1.Init.Mode = DMA_CIRCULAR;
+    hdma_tim4_ch1.Init.Mode = DMA_NORMAL;
     hdma_tim4_ch1.Init.Priority = DMA_PRIORITY_VERY_HIGH;
     hdma_tim4_ch1.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     hdma_tim4_ch1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
@@ -409,7 +409,7 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
     hdma_tim4_ch2.Init.MemInc = DMA_MINC_ENABLE;
     hdma_tim4_ch2.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
     hdma_tim4_ch2.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-    hdma_tim4_ch2.Init.Mode = DMA_CIRCULAR;
+    hdma_tim4_ch2.Init.Mode = DMA_NORMAL;
     hdma_tim4_ch2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
     hdma_tim4_ch2.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     hdma_tim4_ch2.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
@@ -430,7 +430,7 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
     hdma_tim4_ch3.Init.MemInc = DMA_MINC_ENABLE;
     hdma_tim4_ch3.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
     hdma_tim4_ch3.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-    hdma_tim4_ch3.Init.Mode = DMA_CIRCULAR;
+    hdma_tim4_ch3.Init.Mode = DMA_NORMAL;
     hdma_tim4_ch3.Init.Priority = DMA_PRIORITY_VERY_HIGH;
     hdma_tim4_ch3.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     hdma_tim4_ch3.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
@@ -464,7 +464,7 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
     hdma_tim5_ch2.Init.MemInc = DMA_MINC_ENABLE;
     hdma_tim5_ch2.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
     hdma_tim5_ch2.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-    hdma_tim5_ch2.Init.Mode = DMA_CIRCULAR;
+    hdma_tim5_ch2.Init.Mode = DMA_NORMAL;
     hdma_tim5_ch2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
     hdma_tim5_ch2.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     hdma_tim5_ch2.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
