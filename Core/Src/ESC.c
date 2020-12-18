@@ -36,6 +36,7 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 */
 
 #include "ESC.h"
+#include "main.h"
 
 //#define DSHOT150
 #define DSHOT300
@@ -105,6 +106,7 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 		escSet->Throttle[i] = 0;
 		for (int j = 0; j < DSHOT_PACKET_SIZE; j++) escSet->ThrottleDshot[i][j] = 0;
 		escSet->Channel[i] = 4*i;
+		escSet->SendingFlag = 0;
 		escSet->Timer[i] = pwmTimer;
 		escSet->DMA[i] = dmaHandlers[i];
  		escSet->CCR[i] = &(pwmTimer->Instance->CCR1) + i;
@@ -113,7 +115,8 @@ ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* p
 	for (int i = 0; i < ESC_COUNT; i++)
 	{
 		HAL_TIM_PWM_Start(pwmTimer, escSet->Channel[i]);
-		HAL_DMA_Start(escSet->DMA[i], (uint32_t) &escSet->ThrottleDshot[i],
+		HAL_DMA_RegisterCallback(escSet->DMA[i], HAL_DMA_XFER_HALFCPLT_CB_ID, *DMA_XferCpltCallback);
+		HAL_DMA_Start_IT(escSet->DMA[i], (uint32_t) &escSet->ThrottleDshot[i],
 								(uint32_t) escSet->CCR[i], DSHOT_PACKET_SIZE);
 	}
 	return escSet;
@@ -145,6 +148,7 @@ void DSHOT_SEND_PACKET(ESC_CONTROLLER* escSet, uint32_t data, uint32_t telemBit,
 		__DSHOT_CONSUME_BIT(dshotPacket[i], dshotBytes);
 		dshotBytes >>= 1;
 	}
+	escSet->SendingFlag = 1;
 	switch(motorNum) {
 		case (FRONT_LEFT_MOTOR):
 			memcpy(escSet->ThrottleDshot[0], dshotPacket, sizeof(dshotPacket));
@@ -229,6 +233,7 @@ void DSHOT_SEND_PACKET(ESC_CONTROLLER* escSet, uint32_t data, uint32_t telemBit,
 			__HAL_DMA_ENABLE(escSet->DMA[3]);
 			break;
 	}
+	escSet->SendingFlag = 0;
 }
 
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* escSet)
@@ -248,13 +253,9 @@ void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 	if (cmd == 	DSHOT_CMD_SPIN_DIRECTION_NORMAL || DSHOT_CMD_SPIN_DIRECTION_REVERSED ||
 				DSHOT_CMD_SPIN_DIRECTION_1 || DSHOT_CMD_SPIN_DIRECTION_2)
 	{
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 100; i++)
 		{
 			DSHOT_SEND_PACKET(escSet, cmd, 1, motorNum);
-		}
-		for (int i = 0; i < 10; i++)
-		{
-			DSHOT_SEND_PACKET(escSet, DSHOT_CMD_SAVE_SETTINGS, 1, motorNum);
 		}
 	}
 	// Commands I do not want to be used right now
@@ -268,7 +269,7 @@ void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 	else if (cmd == DSHOT_CMD_BEACON1 || DSHOT_CMD_BEACON2 || DSHOT_CMD_BEACON3 ||
 					DSHOT_CMD_BEACON4 || DSHOT_CMD_BEACON5)
 	{
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 100; i++)
 		{
 			DSHOT_SEND_PACKET(escSet, cmd, 1, motorNum);
 		}
@@ -276,7 +277,7 @@ void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 	}
 	else
 	{
-		for (int i = 0; i < 10; i++) DSHOT_SEND_PACKET(escSet, cmd, 1, motorNum);
+		for (int i = 0; i < 100; i++) DSHOT_SEND_PACKET(escSet, cmd, 1, motorNum);
 	}
 }
 

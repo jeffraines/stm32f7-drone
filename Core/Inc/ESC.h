@@ -65,6 +65,7 @@ typedef struct ESC
 	uint32_t Throttle[ESC_COUNT];
 	uint32_t ThrottleDshot[ESC_COUNT][DSHOT_PACKET_SIZE];
 	uint32_t Channel[ESC_COUNT];
+	uint8_t SendingFlag;
 	TIM_HandleTypeDef* Timer[ESC_COUNT];
 	DMA_HandleTypeDef* DMA[ESC_COUNT];
 	volatile uint32_t* CCR[ESC_COUNT];

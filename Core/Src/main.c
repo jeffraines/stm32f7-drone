@@ -68,9 +68,10 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 int cmd = 0;
 int motor = 0;
-int throttleHighFlag = 1;
+uint8_t throttleHighFlag = 1;
+uint8_t commandBlocking = 0;
 uint32_t watchdog = 0;
-uint8_t armed = 1;
+uint8_t armed = 0;
 uint8_t txDisconnected = 0;
 uint8_t escCMD;
 uint8_t sendMsg[48];
@@ -119,11 +120,22 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	watchdog = 0;
 }
 
+// XLG data interrrupt service routine
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	XLG_G_DATA_READ(&hi2c1, &gData);
 	XLG_XL_DATA_READ(&hi2c1, &xlData);
 }
+
+void DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
+{
+//	if (armed && !myESCSet->SendingFlag)
+//	{
+//		ESC_UPDATE_THROTTLE(myESCSet);
+//	}
+}
+
+//void HAL_DMA_M
 
 /* USER CODE END 0 */
 
@@ -179,21 +191,21 @@ int main(void)
 	XLG_XL_DATA_READ(&hi2c1, &xlData);
 	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
 
-	ESC_SEND_CMD(myESCSet, DSHOT_CMD_MOTOR_STOP, ALL_MOTORS);
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SPIN_DIRECTION_1, FRONT_LEFT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SPIN_DIRECTION_2, FRONT_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SPIN_DIRECTION_2, BACK_LEFT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SPIN_DIRECTION_1, BACK_RIGHT_MOTOR);
 
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_ON, FRONT_LEFT_MOTOR);
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_OFF, FRONT_LEFT_MOTOR);
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_OFF, FRONT_LEFT_MOTOR);
 
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_ON, FRONT_RIGHT_MOTOR);
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_ON, FRONT_LEFT_MOTOR);
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_OFF, FRONT_LEFT_MOTOR);
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_OFF, FRONT_LEFT_MOTOR);
+
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_ON, FRONT_RIGHT_MOTOR);
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_OFF, FRONT_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_OFF, FRONT_RIGHT_MOTOR);
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_OFF, FRONT_RIGHT_MOTOR);
 
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_ON, BACK_LEFT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_OFF, BACK_LEFT_MOTOR);
@@ -202,9 +214,11 @@ int main(void)
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_ON, BACK_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_OFF, BACK_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_OFF, BACK_RIGHT_MOTOR);
+
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SAVE_SETTINGS, BACK_RIGHT_MOTOR);
 	}
-	ESC_SEND_CMD(myESCSet, DSHOT_CMD_BEACON1, ALL_MOTORS);
-	HAL_Delay(1000);
+	ESC_SEND_CMD(myESCSet, DSHOT_CMD_MOTOR_STOP, ALL_MOTORS);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -222,8 +236,8 @@ int main(void)
 		else if (!myRX->switchA)
 		{
 			armed = 0;
-			throttleHighFlag = 0;
 			ESC_SEND_CMD(myESCSet, DSHOT_CMD_MOTOR_STOP, ALL_MOTORS);
+			throttleHighFlag = 0;
 		}
 		else if ((myRX->switchA && (myRX->throttle < 50)) || throttleHighFlag)
 		{
