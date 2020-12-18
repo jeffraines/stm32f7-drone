@@ -155,7 +155,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_Delay(2000);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -190,7 +190,6 @@ int main(void)
 	XLG_G_DATA_READ(&hi2c1, &gData);
 	XLG_XL_DATA_READ(&hi2c1, &xlData);
 	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
-
 	for (int i = 0; i < 100; i++)
 	{
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SPIN_DIRECTION_1, FRONT_LEFT_MOTOR);
@@ -214,10 +213,15 @@ int main(void)
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED0_ON, BACK_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED1_OFF, BACK_RIGHT_MOTOR);
 		ESC_SEND_CMD(myESCSet, DSHOT_CMD_LED2_OFF, BACK_RIGHT_MOTOR);
-
-		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SAVE_SETTINGS, BACK_RIGHT_MOTOR);
 	}
-	ESC_SEND_CMD(myESCSet, DSHOT_CMD_MOTOR_STOP, ALL_MOTORS);
+	for (int i = 0; i < 100; i++)
+	{
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_SAVE_SETTINGS, ALL_MOTORS);
+	}
+	for (int i = 0; i < 100; i++)
+	{
+		ESC_SEND_CMD(myESCSet, DSHOT_CMD_MOTOR_STOP, ALL_MOTORS);
+	}
 
   /* USER CODE END 2 */
 
@@ -226,12 +230,13 @@ int main(void)
 	while (1)
 	{
 		watchdog++;
-		if (watchdog > 100000)
+		if (watchdog > 1000)
 		{
 			armed = 0;
 			RX_DISCONNECTED(myRX);
 			ESC_CALC_THROTTLE(myESCSet, myRX, armed);
 			ESC_UPDATE_THROTTLE(myESCSet);
+			ESC_SEND_CMD(myESCSet, DSHOT_CMD_BEACON3, ALL_MOTORS);
 		}
 		else if (!myRX->switchA)
 		{
