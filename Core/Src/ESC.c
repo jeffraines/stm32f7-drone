@@ -78,10 +78,10 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 #endif
 
 #define DSHOT_MIN_THROTTLE	47
-#define DSHOT_MIN_IDLE		150
+#define DSHOT_MIN_IDLE		250
 #define DSHOT_MAX_THROTTLE 	2047
 #define XYZ_NEUTRAL_VALUE	1028
-#define SENSITIVITY_CONST	0.1
+#define SENSITIVITY_CONST	0.25
 
 #if defined(DSHOT150) || defined(DSHOT300) || defined(DSHOT600) || defined(DSHOT1200)
 

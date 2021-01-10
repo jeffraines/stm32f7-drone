@@ -7,7 +7,8 @@
 
 #include "RX.h"
 
-#define RX_EXPONENT 		2.045
+#define RX_COEFFICIENT 		2.045
+//#define RX_COEFFICIENT 		1.5
 #define RX_OFFSET 			998
 #define RX_SWITCH_OFFSET	550
 
@@ -36,19 +37,19 @@ void RX_UPDATE(RX_CONTROLLER* thisRX)
 {
 	// Calculate RX throttle value
 	uint32_t curThrottle = HAL_TIM_ReadCapturedValue(thisRX->timerSticks, TIM_CHANNEL_1);
-	if (curThrottle > RX_OFFSET - 1) curThrottle = (curThrottle - RX_OFFSET) * RX_EXPONENT;
+	if (curThrottle > RX_OFFSET - 1) curThrottle = (curThrottle - RX_OFFSET) * RX_COEFFICIENT;
 	thisRX->throttle = curThrottle;
 	// Calculate RX pitch value
 	int32_t curPitch = HAL_TIM_ReadCapturedValue(thisRX->timerSticks, TIM_CHANNEL_2);
-	if (curPitch > RX_OFFSET - 1) curPitch = (curPitch - RX_OFFSET) * RX_EXPONENT;
+	if (curPitch > RX_OFFSET - 1) curPitch = (curPitch - RX_OFFSET) * RX_COEFFICIENT;
 	thisRX->pitch = curPitch;
 	// Calculate RX roll value
 	uint32_t curRoll = HAL_TIM_ReadCapturedValue(thisRX->timerSticks, TIM_CHANNEL_3);
-	if (curRoll > RX_OFFSET - 1) curRoll = (curRoll - RX_OFFSET) * RX_EXPONENT;
+	if (curRoll > RX_OFFSET - 1) curRoll = (curRoll - RX_OFFSET) * RX_COEFFICIENT;
 	thisRX->roll = curRoll;
 	// Calculate RX yaw value
 	uint32_t curYaw = HAL_TIM_ReadCapturedValue(thisRX->timerSticks, TIM_CHANNEL_4);
-	if (curYaw > RX_OFFSET - 1) curYaw = (curYaw - RX_OFFSET) * RX_EXPONENT;
+	if (curYaw > RX_OFFSET - 1) curYaw = (curYaw - RX_OFFSET) * RX_COEFFICIENT;
 	thisRX->yaw = curYaw;
 	// Calculate Switch A state
 	uint32_t curSwitchA = HAL_TIM_ReadCapturedValue(thisRX->timerSwitches, TIM_CHANNEL_1);
