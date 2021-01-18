@@ -2,7 +2,7 @@
 
 https://vimeo.com/jeffraines
 
-## STM32F722 Pinout
+## STM32F722 Pinout (NUCLEO-F722ZE) (Header) (Peripheral Type) 
 
 Motor Outputs
 - PA6 (D12) (CN7/Top Right) (TIM3): Motor 1
@@ -13,9 +13,9 @@ Motor Outputs
 - PD14 (D10) (CN7(Top Right) (TIM4): Motor 6
 
 Test Inputs
-- PB1 (A6) (CN10/Top Left): ADC input for potentiometer 
-- PF14 (D4) (CN10/Top Right): GPIO button input
-- PF15 (D2) (CN10/Top Right): GPIO button input
+- PB1 (A6) (CN10/Top Left) (ADC1 Input): Input for potentiometer 
+- PF14 (D4) (CN10/Top Right) (GPIO Input): Button input
+- PF15 (D2) (CN10/Top Right) (GPIO Input): Button input
 
 RX Inputs
 - PE9 (D6) (CN10/Top Right) (TIM1 CH1): Throttle RX CH3 
@@ -27,5 +27,5 @@ RX Inputs
 - PE7 (D41) (CN10/Bottom Right) (TIM1 ETR): External trigger source for input capture compare	
 
 I2C Communication
-- PB8 (D15) (CN7/Top Right): SCL
-- PB9 (D14) (CN7/Top Right): SDA
+- PB8 (D15) (CN7/Top Right) (I2C1): XL/G SCL
+- PB9 (D14) (CN7/Top Right) (I2C1): XL/G SDA
