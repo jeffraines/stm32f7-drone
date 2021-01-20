@@ -87,6 +87,13 @@ Prescaler = (Timer Freq (Hz) / (PWM Freq (Hz) * (Counter Period) + 1) - 1)
 
 #define __DSHOT_CONSUME_BIT(__DSHOT_BYTE__, __BIT__) (__DSHOT_BYTE__ = (((__BIT__ & 0b1) == 0b1) ? DSHOT_HIGH_BIT : DSHOT_LOW_BIT))
 
+/* Function Summary: Initiate the Electronic Speed Controller (ESC) for
+ * a particular timer and DMA streams
+ * Param: * dmaTickTimers - Pointer to predefined timer used to trigger dma streams
+ * Param: * pwmTimer - Pointer to timer handle responsible for outputting to ESCs
+ * Param: ** dmaHandlers - Array containing set of DMA streams
+ * Return: Pointer to struct containing all necessary data for ESC operation
+ */
 ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef** dmaHandlers)
 {
 	dmaTickTimers[0]->Instance->ARR = TIMER_ARR - 1; 	// htim4 ARR, synchronize timer that control DMA requests
@@ -136,6 +143,7 @@ uint16_t makeDshotPacketBytes(uint32_t value, uint8_t telemBit)
 	packet = (packet << 4) | csum;
 	return packet;
 }
+
 
 void DSHOT_SEND_PACKET(ESC_CONTROLLER* escSet, uint32_t data, uint32_t telemBit, uint32_t motorNum)
 {
@@ -236,6 +244,11 @@ void DSHOT_SEND_PACKET(ESC_CONTROLLER* escSet, uint32_t data, uint32_t telemBit,
 	escSet->SendingFlag = 0;
 }
 
+/* Function Summary: Once the throttle has a new value loaded in this is called to
+ * start the output of that throttle value.
+ * Param: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
+ * Return: VOID
+ */
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* escSet)
 {
 	// Throttle cannot exceed 11 bits, so max value is 2047
@@ -246,12 +259,17 @@ void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* escSet)
 }
 
 // TO DO: Commands often times do not save, need to figure out why.
-// If I increase how many times it loops this send cmd then it's more likely to work.
+/* Function Summary: Send particular DSHOT command to ESC
+ * Param: escSet - Pointer to the single ESC_CONTROLLER,
+ * Param: cmd - command from available command list,
+ * Param: motorNum - specific motor(s) to send the command to
+ * Return: VOID
+ */
 void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 {
 	// Need to set telemetry bit to 1 if either of these commands are sent
-	if (cmd == 	DSHOT_CMD_SPIN_DIRECTION_NORMAL || DSHOT_CMD_SPIN_DIRECTION_REVERSED ||
-				DSHOT_CMD_SPIN_DIRECTION_1 || DSHOT_CMD_SPIN_DIRECTION_2)
+	if (cmd == DSHOT_CMD_SPIN_DIRECTION_NORMAL || DSHOT_CMD_SPIN_DIRECTION_REVERSED ||
+			   DSHOT_CMD_SPIN_DIRECTION_1 || DSHOT_CMD_SPIN_DIRECTION_2)
 	{
 		for (int i = 0; i < 100; i++)
 		{
@@ -264,7 +282,7 @@ void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 					DSHOT_CMD_SIGNAL_LINE_CONTINUOUS_ERPM_TELEMETRY || DSHOT_CMD_ESC_INFO ||
 					DSHOT_CMD_LED3_ON || DSHOT_CMD_LED3_OFF)
 	{
-		// Do nothing
+		// Do nothing because I don't want these commands being sent currently
 	}
 	else if (cmd == DSHOT_CMD_BEACON1 || DSHOT_CMD_BEACON2 || DSHOT_CMD_BEACON3 ||
 					DSHOT_CMD_BEACON4 || DSHOT_CMD_BEACON5)
@@ -281,6 +299,12 @@ void ESC_SEND_CMD(ESC_CONTROLLER* escSet, uint32_t cmd, uint32_t motorNum)
 	}
 }
 
+/* Function Summary: Calculates throttle values for all motors based on RX inputs
+ * Param: escSet - Pointer to the single ESC_CONTROLLER
+ * Param: thisRX - data struct containing RX inputs
+ * Param: armed - Need to tell if the arm switch is on or off, if off then throttle = DSHOT_MIN_IDLE
+ * Return: VOID
+ */
 void ESC_CALC_THROTTLE(ESC_CONTROLLER* escSet, RX_CONTROLLER* thisRX, uint8_t armed)
 {
 	if (armed)

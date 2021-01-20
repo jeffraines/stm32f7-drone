@@ -79,20 +79,10 @@ typedef struct
 	uint32_t BackRight;
 } MOTOR_THROTTLES;
 
-/* Function Summary: Initiate the Electronic Speed Controller (ESC) for a particular timer and DMA streams.
- * Parameters: *timer - Pointer to predefined timer, *hdmaArray - Array containing set of DMA streams
- * Return: Pointer to the beginning of an array populated with ESC structs.
- */
-
 ESC_CONTROLLER* ESC_INIT(TIM_HandleTypeDef** dmaTickTimers, TIM_HandleTypeDef* pwmTimer, DMA_HandleTypeDef** dma);
-
-/* Function Summary: Once the throttle has a new value loaded in this is called to start the output of that throttle value.
- * Parameters: ESC - Pointer to the single ESC_CONTROLLER that needs throttle to be updated.
- */
 void ESC_UPDATE_THROTTLE(ESC_CONTROLLER* ESC);
 void ESC_SEND_CMD(ESC_CONTROLLER* ESC, uint32_t cmd, uint32_t motorNum);
 void ESC_CALC_THROTTLE(ESC_CONTROLLER* escSet, RX_CONTROLLER* thisRX, uint8_t armed);
-
 
 #define ONESHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 6.07) + 675))
 #define MULTISHOT_ADC_CONV(THROTTLE, ADC_VALUE) (THROTTLE = ((ADC_VALUE / 1.82) + 2250))

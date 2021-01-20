@@ -145,39 +145,39 @@ void DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
-  HAL_Delay(2000);
-  /* USER CODE END Init */
+	/* USER CODE BEGIN Init */
+	HAL_Delay(2000);
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART3_UART_Init();
-  MX_USB_OTG_FS_USB_Init();
-  MX_TIM4_Init();
-  MX_ADC1_Init();
-  MX_I2C1_Init();
-  MX_TIM3_Init();
-  MX_TIM2_Init();
-  MX_TIM1_Init();
-  MX_TIM5_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_USART3_UART_Init();
+	MX_USB_OTG_FS_USB_Init();
+	MX_TIM4_Init();
+	MX_ADC1_Init();
+	MX_I2C1_Init();
+	MX_TIM3_Init();
+	MX_TIM2_Init();
+	MX_TIM1_Init();
+	MX_TIM5_Init();
+	/* USER CODE BEGIN 2 */
 	escDMASet[0] = &hdma_tim4_ch1; 		// DMA1: Stream 0 (S0)
 	escDMASet[1] = &hdma_tim4_ch2; 		// DMA1: Stream 3 (S3)
 	escDMASet[2] = &hdma_tim4_ch3; 		// DMA1: Stream 7 (S7)
@@ -190,10 +190,10 @@ int main(void)
 	XLG_G_DATA_READ(&hi2c1, &gData);
 	XLG_XL_DATA_READ(&hi2c1, &xlData);
 	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
 		watchdog++;
@@ -217,11 +217,11 @@ int main(void)
 			ESC_UPDATE_THROTTLE(myESCSet);
 			throttleHighFlag = 1;
 		}
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**

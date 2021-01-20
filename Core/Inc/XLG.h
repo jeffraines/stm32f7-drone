@@ -20,7 +20,6 @@ typedef struct XLG_DATA
 	bool dataReady;
 }XLG_DATA;
 
-/* I2C Function Prototypes */
 void XLG_INIT(I2C_HandleTypeDef* i2c);
 void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize);
 void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t readSize);

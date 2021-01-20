@@ -2,7 +2,7 @@
  * RX.h
  *
  *  Created on: Nov 17, 2020
- *      Author: jeffr
+ *      Author: Jeff Raines
  */
 
 #ifndef SRC_RX_H_
@@ -25,6 +25,7 @@ typedef struct RX_CONTROLLER
 	TIM_HandleTypeDef* timerSwitches;
 	DMA_HandleTypeDef* DMA;
 } RX_CONTROLLER;
+
 
 RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches);
 void RX_UPDATE(RX_CONTROLLER* RX_CONTROLLER);

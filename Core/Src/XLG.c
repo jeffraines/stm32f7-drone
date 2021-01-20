@@ -7,24 +7,27 @@
 
 #include <XLG.h>
 
-/**
-  * @brief
-  * @note
-  * @param i2c			write here
-  * @param addr			write here
-  * @param writeByte	write here
-  * @param writeSize	write here
-  * @retval void
-  */
-
+/* Function Summary: Starts the XLG chip and makes it read data at fastest rate
+ * Param: * i2c is the predefined i2c handler
+ * Return: VOID
+ */
 void XLG_INIT(I2C_HandleTypeDef* i2c)
 {
+	// Initiate accelerometer IC to start storing data
 	uint8_t writeThis = 0b10000000;
 	XLG_WRITE(i2c, CTRL1_XL, &writeThis, 1);
+	// Initiate gyroscope IC to start storing data
 	writeThis = 0b10001100;
-	XLG_WRITE(i2c, CTRL2_G, &writeThis, 1);
+	XLG_WRITE(i2c, CTRL2 _G, &writeThis, 1);
 }
 
+/* Function Summary: Writes to specific address on the IC
+ * Param: * i2c - predefined i2c handler
+ * Param: addr - address on IC chip,
+ * Param: writeByte - data byte to write to addr
+ * Param: writeSize - how many bytes to write
+ * Return: VOID
+ */
 void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize)
 {
 	if (i2c->hdmatx->State == HAL_DMA_STATE_READY)
@@ -34,6 +37,13 @@ void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_
 	}
 }
 
+/* Function Summary: Reads from specific address on the IC
+ * Param: * i2c - predefined i2c handler
+ * Param: addr - address on IC chip,
+ * Param: writeByte - data byte to read from addr
+ * Param: writeSize - how many bytes to read
+ * Return: VOID
+ */
 void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t readSize)
 {
 	if (i2c->hdmarx->State == HAL_DMA_STATE_READY)
@@ -43,6 +53,10 @@ void XLG_READ(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* readByte, uint32_t 
 	}
 }
 
+/* Function Summary: Reads from interrupt pin on IC to see if accelerometer data is ready
+ * Param: * i2c - predefined i2c handler
+ * Return: VOID
+ */
 _Bool XLG_XL_DATA_READY(I2C_HandleTypeDef* i2c)
 {
 	uint8_t status = 0;
@@ -50,6 +64,10 @@ _Bool XLG_XL_DATA_READY(I2C_HandleTypeDef* i2c)
 	return (status & 0b1); // Mask with XLDA bit in STATUS_REG
 }
 
+/* Function Summary: Reads from interrupt pin on IC to see if gyroscope data is ready
+ * Param: * i2c - predefined i2c handler
+ * Return: VOID
+ */
 _Bool XLG_G_DATA_READY(I2C_HandleTypeDef* i2c)
 {
 	uint8_t status = 0;
@@ -57,6 +75,10 @@ _Bool XLG_G_DATA_READY(I2C_HandleTypeDef* i2c)
 	return (status & 0b10); // Mask with DGA bit in STATUS_REG
 }
 
+/* Function Summary: Reads from interrupt pin on IC to see if temperature data is ready
+ * Param: * i2c - predefined i2c handler
+ * Return: VOID
+ */
 _Bool XLG_TEMP_DATA_READY(I2C_HandleTypeDef* i2c)
 {
 	uint8_t status = 0;
@@ -64,6 +86,11 @@ _Bool XLG_TEMP_DATA_READY(I2C_HandleTypeDef* i2c)
 	return (status & 0b100); // Mask with TDA bit in STATUS_REG
 }
 
+/* Function Summary: Reads from gyroscope data registers on IC to
+ * Param: * i2c - predefined i2c handler
+ * Param: * gData - pointer to structure olding 3-axis gyroscope data
+ * Return: VOID
+ */
 void XLG_G_DATA_READ(I2C_HandleTypeDef* i2c, XLG_DATA* gData)
 {
 	if (XLG_G_DATA_READY(i2c))
@@ -89,6 +116,11 @@ void XLG_G_DATA_READ(I2C_HandleTypeDef* i2c, XLG_DATA* gData)
 	}
 }
 
+/* Function Summary: Reads from accelerometer data registers on IC to
+ * Param: * i2c - predefined i2c handler
+ * Param: * xlData - pointer to structure olding 3-axis acceleromter data
+ * Return: VOID
+ */
 void XLG_XL_DATA_READ(I2C_HandleTypeDef* i2c, XLG_DATA* xlData)
 {
 	if (XLG_XL_DATA_READY(i2c))

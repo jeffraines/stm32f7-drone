@@ -8,11 +8,14 @@
 #include "RX.h"
 
 #define RX_COEFFICIENT 		2.045
-//#define RX_COEFFICIENT 		1.5
 #define RX_OFFSET 			998
 #define RX_SWITCH_OFFSET	550
 
-
+/* Function Summary: Initiate RX_CONTROLLER and zero values, start all timers based on interrupts
+ * Param: * timerSticks - Pointer to timer reading in stick values,
+ * Param: *timerSwitches - Pointer to timer reading in switch values
+ * Return: Pointer struct that contains all of the RX data
+ */
 RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerSwitches)
 {
 	RX_CONTROLLER* newRX = malloc(sizeof(RX_CONTROLLER));
@@ -33,6 +36,10 @@ RX_CONTROLLER* RX_INIT(TIM_HandleTypeDef* timerSticks, TIM_HandleTypeDef* timerS
 	return newRX;
 }
 
+/* Function Summary: Read and write the current values of the RX module
+ * Parameters: * thisRX - Pointer to RX structure holding RX input data
+ * Return: VOID
+ */
 void RX_UPDATE(RX_CONTROLLER* thisRX)
 {
 	// Calculate RX throttle value
@@ -61,6 +68,10 @@ void RX_UPDATE(RX_CONTROLLER* thisRX)
 	else thisRX->switchB = 1;
 }
 
+/* Function Summary: Resets all RX values to 0, used for failsafe
+ * Parameters: * thisRX - Pointer to RX structure holding RX input data
+ * Return: VOID
+ */
 void RX_DISCONNECTED(RX_CONTROLLER* thisRX)
 {
 	thisRX->throttle = 0;
