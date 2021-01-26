@@ -18,7 +18,7 @@ typedef struct XLG_DATA
 	int16_t y;
 	int16_t z;
 	bool dataReady;
-}XLG_DATA;
+} XLG_DATA;
 
 void XLG_INIT(I2C_HandleTypeDef* i2c);
 void XLG_WRITE(I2C_HandleTypeDef* i2c, uint8_t addr, uint8_t* writeByte, uint32_t writeSize);

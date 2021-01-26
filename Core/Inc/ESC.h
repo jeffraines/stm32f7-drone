@@ -15,7 +15,7 @@
 #include "RX.h"
 
 #define DSHOT_PACKET_SIZE 	24
-#define ESC_COUNT 4
+#define ESC_COUNT 			4
 
 typedef enum {
     DSHOT_CMD_MOTOR_STOP = 0,

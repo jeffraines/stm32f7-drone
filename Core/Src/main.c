@@ -50,6 +50,7 @@
 ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
+
 DMA_HandleTypeDef hdma_i2c1_rx;
 DMA_HandleTypeDef hdma_i2c1_tx;
 
@@ -58,6 +59,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+
 DMA_HandleTypeDef hdma_tim4_ch1;
 DMA_HandleTypeDef hdma_tim4_ch2;
 DMA_HandleTypeDef hdma_tim4_ch3;
@@ -106,8 +108,11 @@ static void MX_TIM5_Init(void);
 // Interrupt service routine for command line settings
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
+	// cmd will be used externally from IRQ to send specific command to ESCs
 	cmd = escCMD - '0';
+	// Start listening for another command via UART
 	HAL_UART_Receive_IT(&huart3, &escCMD, 1);
+	// Echo back to user the command they sent
 	sprintf((char*)sendMsg, "\r\nSending command %c\r\n", escCMD);
 	HAL_UART_Transmit_IT(&huart3, sendMsg, strlen((char*)sendMsg));
 }
@@ -135,8 +140,6 @@ void DMA_XferCpltCallback(DMA_HandleTypeDef *hdma)
 //	}
 }
 
-//void HAL_DMA_M
-
 /* USER CODE END 0 */
 
 /**
@@ -155,7 +158,7 @@ int main(void)
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
-	HAL_Delay(2000);
+
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
