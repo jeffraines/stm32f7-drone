@@ -1,6 +1,6 @@
 ## Drone Testing Videos
 
-https://vimeo.com/jeffraines
+https://thejeffraines.com/projects/stm32f7-drone/
 
 ## STM32F722 Pinout (NUCLEO-F722ZE) (Header) (Peripheral Type) 
 
